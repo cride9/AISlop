@@ -1,5 +1,4 @@
 ﻿using AISlop;
-using LlmTornado.Threads;
 
 Action<string, ConsoleColor> displayAgentThought = (thought, color) =>
 {
@@ -20,8 +19,9 @@ Action<string> displayToolCallUsage = (toolcall) =>
 Tools tools = new();
 AIWrapper Agent = new("qwen3:4b-instruct-2507-q8_0");
 
-Console.WriteLine("Task: ");
+Console.Write("Task: ");
 string taskString = Console.ReadLine()!;
+Console.WriteLine();
 if (string.IsNullOrWhiteSpace(taskString))
     throw new ArgumentNullException("Task was an empty string!");
 
@@ -72,12 +72,18 @@ while (agentRunning)
 
         case "askuser":
             displayAgentThought(toolcall.Args["message"], ConsoleColor.Cyan);
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.Write("Response: ");
             Console.ForegroundColor = ConsoleColor.Gray;
             toolOutput = Console.ReadLine()!;
             break;
 
         case "readtextfrompdf":
             toolOutput = tools.ReadTextFromPDF(toolcall.Args["filename"]);
+            break;
+
+        case "executeterminal":
+            toolOutput = $"Command used: {toolcall.Args["command"]}. Output: {tools.ExecuteTerminal(toolcall.Args["command"])}";
             break;
 
         default:
@@ -93,9 +99,9 @@ while (agentRunning)
         toolOutput = Console.ReadLine()!;
         if (string.IsNullOrWhiteSpace(response))
             throw new ArgumentNullException("Task was an empty string!");
-
         if (toolOutput.ToLower() == "end")
             break;
+        Console.WriteLine();
 
         displayAgentThought("", ConsoleColor.Green);
         response = await Agent.AskAi($"User followup question/task: {toolOutput}");

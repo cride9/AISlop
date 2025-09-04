@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
+using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
 
 namespace AISlop
@@ -39,15 +41,10 @@ namespace AISlop
             if (File.Exists(filePath))
                 return $"A file with that name already exists in the workspace: {filename}";
 
-            var file = File.Create(filePath);
+            using var file = File.Create(filePath);
             using StreamWriter sw = new(file, Encoding.UTF8);
 
-            // I need a better way to handle this. TODO
-            content = content.Replace(@"\\n", "\n");
-            content = content.Replace(@"\n", "\n");
-
-            content = content.Replace(@"\\t", "\t");
-            content = content.Replace(@"\t", "\t");
+            content = Regex.Unescape(content);
 
             sw.Write(content);
 
@@ -187,6 +184,35 @@ namespace AISlop
             }
 
             return $"PDF file content:\n{sb.ToString()}";
+        }
+        /*
+        {
+            "tool": "ExecuteTerminal",
+            "args": {
+                "command": "command"
+            }
+        }
+        */
+        public string ExecuteTerminal(string command)
+        {
+            var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
+            {
+                WorkingDirectory = Path.GetFullPath(_workspace),
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = false
+            };
+
+            using var process = Process.Start(processInfo);
+            
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+
+            process.WaitForExit();
+
+            return output + error;
+            
         }
     }
 }

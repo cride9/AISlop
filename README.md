@@ -37,6 +37,7 @@ The agent's capabilities are defined by the tools listed in its system prompt. H
 | `ModifyFile`          | Inserts text into an existing file at a specific line and character position.                            | `filename`, `lineNumber`, `charIndex`, `insertText`                           |
 | `GetWorkspaceEntries` | Lists all files and folders in the current working directory.                                            | _(none)_                                                                      |
 | `OpenFolder`          | Changes the current working directory. Use `../` to navigate up.                                         | `folderName`: The folder to navigate into.                                    |
+| `ReadTextFromPDF`     | Reads the text content of a PDF file.                                                                    | `filename`: The name of the PDF file to read.                                 |
 | `TaskDone`            | Signals that the entire user request has been successfully completed.                                    | `message`: A summary of what was accomplished.                                |
 | `AskUser`             | Pauses execution and asks the user for clarification if the request is ambiguous.                        | `message`: The question to ask the user.                                      |
 

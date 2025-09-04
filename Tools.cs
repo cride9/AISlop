@@ -134,9 +134,9 @@ namespace AISlop
         public string OpenFolder(string folderName)
         {
             if (_workspace.Contains(folderName))
-                return $"Already in folder \"{folderName}\"";
+                return $"Already in a folder named \"{folderName}\"";
 
-            if (folderName == "../")
+            if (folderName.Contains(".."))
             {
                 string parent = Directory.GetParent(_workspace)?.FullName;
                 if (parent == null)

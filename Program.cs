@@ -4,7 +4,7 @@ using LlmTornado.Threads;
 Action<string, ConsoleColor> displayAgentThought = (thought, color) =>
 {
     Console.ForegroundColor = color;
-    Console.Write("Agent: ");
+    Console.Write("Slop Agent: ");
     Console.ForegroundColor = ConsoleColor.White; // reset for the text
     if (!string.IsNullOrWhiteSpace(thought))
         Console.WriteLine($"{thought}\n");
@@ -34,7 +34,7 @@ while (agentRunning)
     if (toolcall == null)
     {
         displayAgentThought("", ConsoleColor.Green);
-        response = await Agent.AskAi("Toolcall failed. Make sure to only use 1 toolcall in each response!");
+        response = await Agent.AskAi("Toolcall failed. Make sure to only use 1 toolcall in each response and format them as the instructions says");
         continue;
     }
 

@@ -23,8 +23,6 @@ The project follows a classic agentic loop, orchestrated by the main `Program.cs
 5.  **Feedback Loop**: The result of the tool execution (e.g., "Success: File created.") is sent back to the LLM as context for its next step.
 6.  **Iteration**: The LLM uses the feedback to continue its plan, selecting the next tool until it determines the task is finished and calls the `TaskDone` tool.
 
-
-
 ## 🛠️ Available Tools
 
 The agent's capabilities are defined by the tools listed in its system prompt. Here is the current set:
@@ -112,7 +110,7 @@ After the task is done, you can inspect the newly created `./workspace/hello-wor
 
 ## 📦 Dependencies
 
-This project relies on the excellent [LlmTornado](https://github.com/tryAGI/LlmTornado) library for communicating with the Ollama API.
+This project relies on the excellent [LlmTornado](https://github.com/tryAGI/LlmTornado) library for communicating with the Ollama API. To handle PDF files, it also uses [PdfPig](https://github.com/UglyToad/PdfPig).
 
 ## 🤝 Contributing
 

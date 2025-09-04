@@ -2,6 +2,7 @@
 using LlmTornado.Chat;
 using LlmTornado.Chat.Models;
 using System.Text;
+using System.Text.Json;
 
 namespace AISlop
 {
@@ -14,18 +15,101 @@ namespace AISlop
             _conversation = api.Chat.CreateConversation(new ChatModel(model));
             _conversation.AddSystemMessage(_systemInstructions);
         }
-
         public async Task<string> AskAi(string message)
         {
-            // Use a StringBuilder to efficiently build the full response string from chunks.
             var responseBuilder = new StringBuilder();
+            string lastPrintedThought = "";
 
-            // Instead of writing to the console, append each streamed chunk to the StringBuilder.
+            int thoughtValueStartIndex = -1;
+            bool thoughtIsComplete = false;
+
+            const string thoughtKey = "\"thought\": \"";
+            const string thoughtTerminator = "\",";
+
+            Task? animationTask = null;
+            var cts = new CancellationTokenSource();
+
             await _conversation.AppendUserInput(message)
-                               .StreamResponse(chunk => responseBuilder.Append(chunk));
+                .StreamResponse(chunk =>
+                {
+                    responseBuilder.Append(chunk);
 
-            // Return the final, complete string.
+                    if (thoughtIsComplete)
+                        return;
+
+                    string currentFullResponse = responseBuilder.ToString();
+
+                    if (thoughtValueStartIndex == -1)
+                    {
+                        int keyIndex = currentFullResponse.IndexOf(thoughtKey);
+                        if (keyIndex != -1)
+                            thoughtValueStartIndex = keyIndex + thoughtKey.Length;
+                    }
+
+                    if (thoughtValueStartIndex != -1)
+                    {
+                        string potentialContent = currentFullResponse.Substring(thoughtValueStartIndex);
+                        string currentThoughtValue;
+
+                        int endMarkerIndex = potentialContent.IndexOf(thoughtTerminator);
+
+                        if (endMarkerIndex != -1)
+                        {
+                            currentThoughtValue = potentialContent.Substring(0, endMarkerIndex);
+                            thoughtIsComplete = true;
+
+                            if (animationTask == null)
+                            {
+                                animationTask = ShowSpinner(cts.Token);
+                            }
+                        }
+                        else
+                        {
+                            currentThoughtValue = potentialContent;
+                        }
+
+                        if (currentThoughtValue.Length > lastPrintedThought.Length && currentThoughtValue.StartsWith(lastPrintedThought))
+                        {
+                            string newContent = currentThoughtValue.Substring(lastPrintedThought.Length);
+                            Console.Write(newContent);
+                            Console.Out.Flush();
+                        }
+
+                        lastPrintedThought = currentThoughtValue;
+                    }
+                });
+
+            cts.Cancel();
+
+            if (animationTask != null)
+                await animationTask;
+
+            Console.WriteLine();
             return responseBuilder.ToString();
+        }
+
+        private static async Task ShowSpinner(CancellationToken token)
+        {
+            var spinnerChars = new[] { '|', '/', '-', '\\' };
+            int spinnerIndex = 0;
+
+            while (!token.IsCancellationRequested)
+            {
+                Console.Write(spinnerChars[spinnerIndex]);
+                spinnerIndex = (spinnerIndex + 1) % spinnerChars.Length;
+
+                try
+                {
+                    await Task.Delay(150, token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+
+                Console.Write('\b');
+            }
+            Console.Write("\b \b");
         }
 
         private string _systemInstructions =
@@ -37,7 +121,7 @@ You are an AI File System Assistant. Your purpose is to help users manage files 
 1.  **Analyze the Request:** Carefully read the user's entire request to understand the final goal.
 2.  **Plan Your Actions:** Break down the request into a logical sequence of individual steps. Each step must correspond to a single tool call.
 3.  **Think and Explain:** Before every tool call, you must articulate your reasoning in the `thought` field. Explain *why* you are taking this specific action as part of your overall plan.
-4.  **Execute One Step at a Time:** Your primary and most critical rule is that you can only execute **ONE tool** in the `tool_call` field of each response.
+4.  **Execute One Step at a Time:** Your primary and most critical rule is that you can only execute **ONE tool** in the `tool_call` field of each response. If you execute more, they won't work. 
 5.  **Await Feedback and Continue:** After you use a tool, the system will provide you with the result. Use this feedback to confirm your actions were successful and to inform your next step. Use error feedback to adjust your plan or report failure.
 6.  **Confirm Completion:** Once all steps in your plan are successfully completed, your final action must be to use the `TaskDone` tool.
 
@@ -182,6 +266,20 @@ Your response must **always** be a single, raw JSON object. This object must con
         ""tool"": ""AskUser"",
         ""args"": {
             ""message"": ""Do you want extra styling for the webpage?""
+        }
+    }
+    ```
+
+**9. ReadTextFromPDF**
+*   Description: Reads a PDF file and returns the text content of it
+*   Arguments:
+    *   `filename`: Name of the file
+*   Format:
+    ```json
+    {
+        ""tool"": ""ReadTextFromPDF"",
+        ""args"": {
+            ""filename"": ""example.pdf""
         }
     }
     ```

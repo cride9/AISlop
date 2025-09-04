@@ -1,10 +1,11 @@
 ﻿using System.Text;
+using UglyToad.PdfPig;
 
 namespace AISlop
 {
     public class Tools
     {
-        string _workspace = "./workspace";
+        string _workspace = "workspace";
         /*
         {
             "tool": "CreateDirectory",
@@ -17,10 +18,11 @@ namespace AISlop
         {
             string folder = Path.Combine(_workspace, name);
             if (Directory.Exists(folder))
-                return $"Directory already exists with name: {name}\n";
+                return $"Directory already exists with name: \"{name}\"";
 
             var output = Directory.CreateDirectory(folder);
-            return $"Directory created at: {output.FullName}";
+            _workspace = folder;
+            return $"Directory created at: \"{folder}\". Current active directory: \"{folder}\"";
         }
         /*
         {
@@ -49,7 +51,7 @@ namespace AISlop
 
             sw.Write(content);
 
-            return $"File has been created: {filename} and content written into it";
+            return $"File has been created: \"{filename}\" and content written into it";
         }
         /*
         {
@@ -63,7 +65,7 @@ namespace AISlop
         {
             string filePath = Path.Combine(_workspace, filename);
             if (!File.Exists(filePath))
-                return $"The file does not exists: {filePath}";
+                return $"The file does not exists: \"{filePath}\"";
 
             var file = File.OpenRead(filePath);
             using StreamReader sr = new(file);
@@ -85,7 +87,7 @@ namespace AISlop
         {
             string filePath = Path.Combine(_workspace, filename);
             if (!File.Exists(filePath))
-                return $"The file does not exists: {filePath}";
+                return $"The file does not exists: \"{filePath}\"";
 
             string[] lines = File.ReadAllLines(filePath);
             if (lineNumber < 0 || lineNumber >= lines.Length)
@@ -114,10 +116,12 @@ namespace AISlop
             int count = 1;
             foreach (var entry in entries)
             {
-                sb.AppendLine($"{count++}. {entry}");
+                sb.AppendLine($"\t{count++}. {entry}");
             }
+            if (string.IsNullOrWhiteSpace(sb.ToString()))
+                return $"The folder \"{_workspace}\" is empty.";
 
-            return $"Files in folder \"{_workspace}\": {sb.ToString()}";
+            return $"Files in folder \"{_workspace}\":\n{sb.ToString()}";
         }
         /*
         {
@@ -129,14 +133,20 @@ namespace AISlop
         */
         public string OpenFolder(string folderName)
         {
+            if (_workspace.Contains(folderName))
+                return $"Already in folder \"{folderName}\"";
+
             if (folderName == "../")
             {
                 string parent = Directory.GetParent(_workspace)?.FullName;
                 if (parent == null)
                     return "Already at the root directory, cannot go up.";
 
+                if (!parent.Contains("workspace"))
+                    return "Invalid path. You can't go further than that";
+
                 _workspace = parent;
-                return $"Successfully changed to folder {folderName}";
+                return $"Successfully changed to folder \"{folderName}\"";
             }
 
             string path = Path.Combine(_workspace, folderName);
@@ -144,7 +154,39 @@ namespace AISlop
                 return $"Directory \"{folderName}\" does not exist";
 
             _workspace = path;
-            return $"Successfully changed to folder {folderName}";
+            return $"Successfully changed to folder \"{folderName}\"";
+        }
+        /*
+        {
+            "tool": "ReadTextFromPDF",
+            "args": {
+                "filename": "filename"
+            }
+        }
+        */
+        public string ReadTextFromPDF(string filename)
+        {
+            var filePath = Path.Combine(_workspace, filename);
+            if (!File.Exists(filePath))
+                return $"File \"{filename}\" does not exist.";
+
+            using var document = PdfDocument.Open(filePath);
+            StringBuilder sb = new();
+            foreach (var page in document.GetPages())
+            {
+                double? lastY = null;
+                foreach (var word in page.GetWords())
+                {
+                    var y = word.BoundingBox.Top;
+                    if (lastY != null && Math.Abs(lastY.Value - y) > 5)
+                        sb.AppendLine();
+                    
+                    sb.Append($"{word.Text} ");
+                    lastY = y;
+                }
+            }
+
+            return $"PDF file content:\n{sb.ToString()}";
         }
     }
 }

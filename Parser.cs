@@ -50,16 +50,24 @@ namespace AISlop
             if (string.IsNullOrEmpty(jsonCommand))
                 return null!;
 
-            var aiResponse = JsonSerializer.Deserialize<AIResponse>(jsonCommand);
-            if (aiResponse?.ToolCall == null)
-                return null!;
-
-            return new Command
+            try
             {
-                Thought = aiResponse.Thought,
-                Tool = aiResponse.ToolCall.Tool,
-                Args = aiResponse.ToolCall.Args
-            };
+
+                var aiResponse = JsonSerializer.Deserialize<AIResponse>(jsonCommand);
+                if (aiResponse?.ToolCall == null)
+                    return null!;
+
+                return new Command
+                {
+                    Thought = aiResponse.Thought,
+                    Tool = aiResponse.ToolCall.Tool,
+                    Args = aiResponse.ToolCall.Args
+                };
+            }
+            catch (Exception ex)
+            {
+                return null!;
+            }
         }
 
         public static string? ExtractJson(string rawResponse)

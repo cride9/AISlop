@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="LlmTornado" Version="3.7.36" />
+    <PackageReference Include="PdfPig" Version="0.1.11" />
   </ItemGroup>
 
 </Project>

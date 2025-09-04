@@ -6,17 +6,26 @@ Action<string, ConsoleColor> displayAgentThought = (thought, color) =>
     Console.ForegroundColor = color;
     Console.Write("Agent: ");
     Console.ForegroundColor = ConsoleColor.White; // reset for the text
-    Console.WriteLine($"{thought}\n");
+    if (!string.IsNullOrWhiteSpace(thought))
+        Console.WriteLine($"{thought}\n");
+};
+Action<string> displayToolCallUsage = (toolcall) =>
+{
+    Console.ForegroundColor = ConsoleColor.Magenta;
+    Console.Write("Toolcall: ");
+    Console.ForegroundColor = ConsoleColor.DarkGray; // reset for the text
+    Console.WriteLine($"{toolcall}\n");
 };
 
 Tools tools = new();
-AIWrapper Agent = new("qwen3-coder:30b-a3b-q4_K_M");
+AIWrapper Agent = new("qwen3:4b-instruct-2507-q8_0");
 
 Console.WriteLine("Task: ");
 string taskString = Console.ReadLine()!;
 if (string.IsNullOrWhiteSpace(taskString))
     throw new ArgumentNullException("Task was an empty string!");
 
+displayAgentThought("", ConsoleColor.Green);
 var response = await Agent.AskAi(taskString);
 bool agentRunning = true;
 while (agentRunning)
@@ -24,12 +33,12 @@ while (agentRunning)
     var toolcall = Parser.Parse(response);
     if (toolcall == null)
     {
-        response = await Agent.AskAi("continue");
+        displayAgentThought("", ConsoleColor.Green);
+        response = await Agent.AskAi("Toolcall failed. Make sure to only use 1 toolcall in each response!");
         continue;
     }
 
     string toolOutput = "";
-    displayAgentThought(toolcall.Thought, ConsoleColor.Green);
     switch (toolcall.Tool.ToLower())
     {
         case "createdirectory":
@@ -65,9 +74,18 @@ while (agentRunning)
             displayAgentThought(toolcall.Args["message"], ConsoleColor.Cyan);
             Console.ForegroundColor = ConsoleColor.Gray;
             toolOutput = Console.ReadLine()!;
+            break;
 
+        case "readtextfrompdf":
+            toolOutput = tools.ReadTextFromPDF(toolcall.Args["filename"]);
+            break;
+
+        default:
+            toolOutput = "Toolcall failed. Make sure to only use 1 toolcall in each response and format them as the instructions says";
             break;
     }
+    displayToolCallUsage(toolOutput);
+
     if (!agentRunning)
     {
         Console.ForegroundColor = ConsoleColor.Gray;
@@ -79,12 +97,14 @@ while (agentRunning)
         if (toolOutput.ToLower() == "end")
             break;
 
+        displayAgentThought("", ConsoleColor.Green);
         response = await Agent.AskAi($"User followup question/task: {toolOutput}");
         agentRunning = true;
     }
     else
     {
 
+        displayAgentThought("", ConsoleColor.Green);
         response = await Agent.AskAi(toolOutput);
     }
 }

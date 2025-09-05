@@ -1,4 +1,6 @@
 ﻿using AISlop;
+using System.Text.RegularExpressions;
+using static System.Net.Mime.MediaTypeNames;
 
 Action<string, ConsoleColor> displayAgentThought = (thought, color) =>
 {
@@ -33,8 +35,11 @@ while (agentRunning)
     var toolcall = Parser.Parse(response);
     if (toolcall == null)
     {
+        int count = Regex.Matches(response, "json", RegexOptions.IgnoreCase).Count; 
+        displayToolCallUsage($"Json parser error: {count} json detected!");
+
         displayAgentThought("", ConsoleColor.Green);
-        response = await Agent.AskAi("Toolcall failed. Make sure to only use 1 toolcall in each response and format them as the instructions says");
+        response = await Agent.AskAi($"Json parser error: {count} json detected! Try again..");
         continue;
     }
 
@@ -87,13 +92,14 @@ while (agentRunning)
             break;
 
         default:
-            toolOutput = "Toolcall failed. Make sure to only use 1 toolcall in each response and format them as the instructions says";
+            toolOutput = "No toolcall detected!";
             break;
     }
     displayToolCallUsage(toolOutput);
 
     if (!agentRunning)
     {
+        Console.Beep();
         Console.ForegroundColor = ConsoleColor.Gray;
         Console.WriteLine("New task: (type \"end\" to end the process)");
         toolOutput = Console.ReadLine()!;

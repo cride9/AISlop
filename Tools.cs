@@ -8,6 +8,7 @@ namespace AISlop
     public class Tools
     {
         string _workspace = "workspace";
+        string _workspaceRoot = "workspace";
         /*
         {
             "tool": "CreateDirectory",
@@ -113,12 +114,12 @@ namespace AISlop
             int count = 1;
             foreach (var entry in entries)
             {
-                sb.AppendLine($"\t{count++}. {entry}");
+                sb.AppendLine($"\t{count++}. {Path.GetFileName(entry)}");
             }
             if (string.IsNullOrWhiteSpace(sb.ToString()))
                 return $"The folder \"{_workspace}\" is empty.";
 
-            return $"Files in folder \"{_workspace}\":\n{sb.ToString()}";
+            return $"Entries in folder \"{_workspace}\":\n{sb}";
         }
         /*
         {
@@ -143,12 +144,20 @@ namespace AISlop
                     return "Invalid path. You can't go further than that";
 
                 _workspace = parent;
-                return $"Successfully changed to folder \"{folderName}\"";
+                return $"Successfully changed to folder \"{_workspace}\"";
             }
 
             string path = Path.Combine(_workspace, folderName);
-            if (!Directory.Exists(path))
+            string rootPath = Path.Combine(_workspaceRoot, folderName);
+            if (!Directory.Exists(path) && !Directory.Exists(rootPath))
                 return $"Directory \"{folderName}\" does not exist";
+
+            // safe handle, if AI fails to navigate back
+            if (Directory.Exists(rootPath))
+            {
+                _workspace = rootPath;
+                return $"Successfully changed to folder \"{folderName}\"";
+            }
 
             _workspace = path;
             return $"Successfully changed to folder \"{folderName}\"";

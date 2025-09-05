@@ -136,7 +136,7 @@ namespace AISlop
 
             if (folderName.Contains(".."))
             {
-                string parent = Directory.GetParent(_workspace)?.FullName;
+                string parent = Directory.GetParent(_workspace)?.FullName!;
                 if (parent == null)
                     return "Already at the root directory, cannot go up.";
 
@@ -215,7 +215,7 @@ namespace AISlop
 
             using var process = Process.Start(processInfo);
             
-            string output = process.StandardOutput.ReadToEnd();
+            string output = process!.StandardOutput.ReadToEnd();
             string error = process.StandardError.ReadToEnd();
 
             process.WaitForExit();

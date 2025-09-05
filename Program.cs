@@ -1,6 +1,5 @@
 ﻿using AISlop;
 using System.Text.RegularExpressions;
-using static System.Net.Mime.MediaTypeNames;
 
 Action<string, ConsoleColor> displayAgentThought = (thought, color) =>
 {

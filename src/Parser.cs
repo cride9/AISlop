@@ -8,9 +8,9 @@ namespace AISlop
     {
         public class Command
         {
-            public string Thought { get; set; }
-            public string Tool { get; set; }
-            public Dictionary<string, string> Args { get; set; }
+            public string Thought { get; set; } = string.Empty;
+            public string Tool { get; set; } = string.Empty;
+            public Dictionary<string, string> Args { get; set; } = null!;
 
             public override string ToString()
             {
@@ -29,19 +29,19 @@ namespace AISlop
         public class ToolCall
         {
             [JsonPropertyName("tool")]
-            public string Tool { get; set; }
+            public string Tool { get; set; } = string.Empty;
 
             [JsonPropertyName("args")]
-            public Dictionary<string, string> Args { get; set; }
+            public Dictionary<string, string> Args { get; set; } = null!;
         }
 
         public class AIResponse
         {
             [JsonPropertyName("thought")]
-            public string Thought { get; set; }
+            public string Thought { get; set; } = string.Empty;
 
             [JsonPropertyName("tool_call")]
-            public ToolCall ToolCall { get; set; }
+            public ToolCall ToolCall { get; set; } = null!;
         }
 
         public static Command Parse(string response)
@@ -64,7 +64,7 @@ namespace AISlop
                     Args = aiResponse.ToolCall.Args
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return null!;
             }

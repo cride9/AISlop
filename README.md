@@ -1,6 +1,8 @@
 # Slop Agent
 ---
 
+This project is focused on running with little models without proper toolcalling support. Since it only uses chat toolcalls based on AI response.
+
 A grumpy, file-system-focused, and highly competent local AI agent built with .NET 8. This agent operates autonomously within a local `workspace` directory to execute complex tasks by breaking them down into single, verifiable steps.
 
 ## About The Project

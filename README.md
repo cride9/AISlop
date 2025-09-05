@@ -38,6 +38,7 @@ The agent's capabilities are defined by the tools listed in its system prompt. H
 | `ReadTextFromPDF`     | Reads the text content of a PDF file.                                                                    | `filename`: The name of the PDF file to read.                                 |
 | `TaskDone`            | Signals that the entire user request has been successfully completed.                                    | `message`: A summary of what was accomplished.                                |
 | `AskUser`             | Pauses execution and asks the user for clarification if the request is ambiguous.                        | `message`: The question to ask the user.                                      |
+| `ExecuteTerminal`     | Executes a command line string                                                                           | `command`: The command to run.                                                |
 
 ## 🚀 Getting Started
 

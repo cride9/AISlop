@@ -1,5 +1,6 @@
 # Slop Agent
 ---
+[![Youtube Video]()](https://www.youtube.com/watch?v=rZmKbu9Q9w4)
 
 This project is focused on running with little models without proper toolcalling support. Since it only uses chat toolcalls based on AI response.
 

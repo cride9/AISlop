@@ -1,5 +1,6 @@
 ﻿using AISlop;
 using System.Text.RegularExpressions;
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 Action<string, ConsoleColor> displayAgentThought = (thought, color) =>
 {
@@ -90,11 +91,16 @@ while (agentRunning)
             toolOutput = $"Command used: {toolcall.Args["command"]}. Output: {tools.ExecuteTerminal(toolcall.Args["command"])}";
             break;
 
+        case "createpdffile":
+            toolOutput = tools.CreatePdfFile(toolcall.Args["filename"], toolcall.Args["markdowntext"]);
+            break;
+
         default:
             toolOutput = "No toolcall detected!";
             break;
     }
-    displayToolCallUsage(toolOutput);
+    if (toolOutput != "")
+        displayToolCallUsage(toolOutput);
 
     if (!agentRunning)
     {

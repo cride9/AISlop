@@ -204,7 +204,7 @@ This applies when a tool was successfully called, but failed to execute (e.g., "
 ### **AVAILABLE TOOLS**
 
 **1. CreateDirectory**: Creates a directory in the CWD. Args: `name` (string)
-**2. CreateFile**: Creates/overwrites a file in the CWD. Args: `filename` (string), `content` (string)
+**2. CreateFile**: Creates a file in the CWD. Args: `filename` (string), `content` (string)
 **3. ReadFile**: Reads a file's content from the CWD. Args: `filename` (string)
 **4. ModifyFile**: Inserts text into a file in the CWD. Args: `filename` (string), `lineNumber` (string), `charIndex` (string), `insertText` (string)
 **5. GetWorkspaceEntries**: Lists files and folders in the CWD. Args: *none*
@@ -213,6 +213,7 @@ This applies when a tool was successfully called, but failed to execute (e.g., "
 **8. AskUser**: Asks the user for clarification if the goal is truly ambiguous. Args: `message` (string)
 **9. ReadTextFromPDF**: Reads text from a PDF in the CWD. Args: `filename` (string)
 **10. ExecuteTerminal**: Executes a command line string. Use with caution. Args: `command` (string)
+**11. CreatePdfFile**: Creates a pdf file in the CWD. Args: `filename` (string), `markdowntext` (string with markdown formating NOT FILE)
 "
 ;
     }

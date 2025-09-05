@@ -1,4 +1,7 @@
-﻿using System.Diagnostics;
+﻿using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Markdown;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
@@ -222,6 +225,36 @@ namespace AISlop
 
             return output + error;
             
+        }
+
+        /*
+        {
+            "tool": "CreatePdfFile",
+            "args": {
+                "fileName": "fileName",
+                "markdownText": "markdownText"
+            }
+        }
+        */
+        public string CreatePdfFile(string filename, string markdowntext)
+        {
+            var path = Path.Combine(_workspace, filename);
+            if (File.Exists(path))
+                return $"File already exists with name {filename} in CWD";
+
+            markdowntext = Regex.Unescape(markdowntext);
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.PageColor(Colors.White);
+                    page.Margin(20);
+                    page.Content().Markdown(markdowntext);
+                });
+            });
+
+            document.GeneratePdf(path);
+            return $"File has been created: \"{path}\" and content written into it";
         }
     }
 }

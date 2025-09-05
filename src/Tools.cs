@@ -12,6 +12,12 @@ namespace AISlop
     {
         string _workspace = "workspace";
         string _workspaceRoot = "workspace";
+
+        public Tools()
+        {
+            if (!Directory.Exists(_workspaceRoot))
+                Directory.CreateDirectory(_workspaceRoot);
+        }
         /*
         {
             "tool": "CreateDirectory",
@@ -224,7 +230,6 @@ namespace AISlop
             process.WaitForExit();
 
             return output + error;
-            
         }
 
         /*
@@ -242,13 +247,14 @@ namespace AISlop
             if (File.Exists(path))
                 return $"File already exists with name {filename} in CWD";
 
-            markdowntext = Regex.Unescape(markdowntext);
+            //markdowntext = Regex.Unescape(markdowntext);
+            markdowntext = markdowntext.Replace("\\n", "\n").Replace("\\t", "\t");
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.PageColor(Colors.White);
-                    page.Margin(20);
+                    page.Margin(40);
                     page.Content().Markdown(markdowntext);
                 });
             });

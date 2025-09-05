@@ -19,7 +19,7 @@ Action<string> displayToolCallUsage = (toolcall) =>
 };
 
 Tools tools = new();
-AIWrapper Agent = new("qwen3:4b-instruct-2507-q8_0");
+AIWrapper Agent = new("qwen3:4b-instruct-2507-q4_K_M");
 
 Console.Write("Task: ");
 string taskString = Console.ReadLine()!;

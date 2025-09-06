@@ -4,6 +4,7 @@ using QuestPDF.Markdown;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using UglyToad.PdfPig;
 
 namespace AISlop
@@ -12,12 +13,19 @@ namespace AISlop
     {
         string _workspace = "workspace";
         string _workspaceRoot = "workspace";
+        string _workspacePlan = "workspace";
 
         public Tools()
         {
             if (!Directory.Exists(_workspaceRoot))
                 Directory.CreateDirectory(_workspaceRoot);
         }
+
+        public string GetCurrentWorkDirectory()
+        {
+            return _workspace;
+        }
+
         /*
         {
             "tool": "CreateDirectory",
@@ -26,15 +34,16 @@ namespace AISlop
             }
         }
         */
-        public string CreateDirectory(string name)
+        public string CreateDirectory(string name, bool setAsActive)
         {
             string folder = Path.Combine(_workspace, name);
             if (Directory.Exists(folder))
                 return $"Directory already exists with name: \"{name}\"";
 
             var output = Directory.CreateDirectory(folder);
-            _workspace = folder;
-            return $"Directory created at: \"{folder}\". Current active directory: \"{folder}\"";
+            if (setAsActive)
+                _workspace = folder;
+            return $"Directory created at: \"{folder}\"." + (setAsActive ? $" Current active directory: \"{folder}\"" : "");
         }
         /*
         {
@@ -51,7 +60,15 @@ namespace AISlop
             if (File.Exists(filePath))
                 return $"A file with that name already exists in the workspace: {filename}";
 
-            using var file = File.Create(filePath);
+            if (filename.ToLower().Contains("plan"))
+            {
+                if (!_workspacePlan.Contains("plan"))
+                    _workspacePlan = filePath;
+                else
+                    filePath = _workspacePlan;
+            }
+
+                using var file = File.Create(filePath);
             using StreamWriter sw = new(file, Encoding.UTF8);
 
             content = Regex.Unescape(content);
@@ -71,6 +88,9 @@ namespace AISlop
         public string ReadFile(string filename)
         {
             string filePath = Path.Combine(_workspace, filename);
+            if (filename.ToLower().Contains("plan"))
+                filePath = _workspacePlan;
+
             if (!File.Exists(filePath))
                 return $"The file does not exists: \"{filePath}\"";
 
@@ -84,30 +104,21 @@ namespace AISlop
             "tool": "ModifyFile",
             "args": {
                 "filename": "FilaName.extension",
-                "lineNumber": "number",
-                "charIndex": "number",
-                "insertText": "Text to be inserted to place"
+                "insertText": "text"
             }
         }
         */
-        public string ModifyFile(string filename, int lineNumber, int charIndex, string insertText)
+        public string ModifyFile(string filename, string text)
         {
             string filePath = Path.Combine(_workspace, filename);
+            if (filename.ToLower().Contains("plan"))
+                filePath = _workspacePlan;
+
             if (!File.Exists(filePath))
                 return $"The file does not exists: \"{filePath}\"";
 
-            string[] lines = File.ReadAllLines(filePath);
-            if (lineNumber < 0 || lineNumber >= lines.Length)
-                return "Invalid line number!";
-
-            string line = lines[lineNumber];
-            if (charIndex < 0 || charIndex > line.Length)
-                return "Invalid character index";
-
-            lines[lineNumber] = line.Insert(charIndex, insertText);
-            File.WriteAllLines(filePath, lines);
-
-            return $"File modified! Text \"{insertText}\" inserted to {lineNumber}:{charIndex}";
+            File.Delete(filePath);
+            return CreateFile(filename, text);
         }
         /*
         {
@@ -118,17 +129,8 @@ namespace AISlop
         */
         public string GetWorkspaceEntries()
         {
-            StringBuilder sb = new();
-            var entries = Directory.EnumerateFileSystemEntries(_workspace);
-            int count = 1;
-            foreach (var entry in entries)
-            {
-                sb.AppendLine($"\t{count++}. {Path.GetFileName(entry)}");
-            }
-            if (string.IsNullOrWhiteSpace(sb.ToString()))
-                return $"The folder \"{_workspace}\" is empty.";
-
-            return $"Entries in folder \"{_workspace}\":\n{sb}";
+            var terminalOutput = ExecuteTerminal("tree /f | more +3");
+            return $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
         }
         /*
         {
@@ -140,21 +142,14 @@ namespace AISlop
         */
         public string OpenFolder(string folderName)
         {
-            if (_workspace.Contains(folderName))
-                return $"Already in a folder named \"{folderName}\"";
-
-            if (folderName.Contains(".."))
+            if (folderName == "workspace")
             {
-                string parent = Directory.GetParent(_workspace)?.FullName!;
-                if (parent == null)
-                    return "Already at the root directory, cannot go up.";
-
-                if (!parent.Contains("workspace"))
-                    return "Invalid path. You can't go further than that";
-
-                _workspace = parent;
+                _workspace = _workspaceRoot;
                 return $"Successfully changed to folder \"{_workspace}\"";
             }
+
+            if (_workspace.Contains(folderName))
+                return $"Already in a folder named \"{folderName}\"";
 
             string path = Path.Combine(_workspace, folderName);
             string rootPath = Path.Combine(_workspaceRoot, folderName);
@@ -228,6 +223,9 @@ namespace AISlop
             string error = process.StandardError.ReadToEnd();
 
             process.WaitForExit();
+
+            if (string.IsNullOrWhiteSpace(output.Trim()))
+                output = "Command success!";
 
             return output + error;
         }

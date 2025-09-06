@@ -19,7 +19,7 @@ Action<string> displayToolCallUsage = (toolcall) =>
 };
 
 Tools tools = new();
-AIWrapper Agent = new("qwen3:4b-instruct-2507-q4_K_M");
+AIWrapper Agent = new("qwen3-coder:30b-a3b-q4_K_M");
 
 Console.Write("Task: ");
 string taskString = Console.ReadLine()!;
@@ -39,7 +39,7 @@ while (agentRunning)
         displayToolCallUsage($"Json parser error: {count} json detected!");
 
         displayAgentThought("", ConsoleColor.Green);
-        response = await Agent.AskAi($"Json parser error: {count} json detected! Try again..");
+        response = await Agent.AskAi($"Tool result: \"Json parser error: {count} json detected! Try again..\"");
         continue;
     }
 
@@ -47,7 +47,7 @@ while (agentRunning)
     switch (toolcall.Tool.ToLower())
     {
         case "createdirectory":
-            toolOutput = tools.CreateDirectory(toolcall.Args["name"]);
+            toolOutput = tools.CreateDirectory(toolcall.Args["name"], bool.Parse(toolcall.Args["setasactive"].ToLower()));
             break;
 
         case "createfile":
@@ -59,7 +59,7 @@ while (agentRunning)
             break;
 
         case "modifyfile":
-            toolOutput = tools.ModifyFile(toolcall.Args["filename"], int.Parse(toolcall.Args["lineNumber"]), int.Parse(toolcall.Args["charIndex"]), toolcall.Args["insertText"]);
+            toolOutput = tools.ModifyFile(toolcall.Args["filename"], toolcall.Args["overridenfilecontent"]);
             break;
 
         case "getworkspaceentries":
@@ -122,6 +122,6 @@ while (agentRunning)
     {
 
         displayAgentThought("", ConsoleColor.Green);
-        response = await Agent.AskAi(toolOutput);
+        response = await Agent.AskAi($"Tool result: \"{toolOutput}\"\nCWD: \"{tools.GetCurrentWorkDirectory()}\"");
     }
 }

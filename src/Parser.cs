@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace AISlop
 {
@@ -72,23 +73,33 @@ namespace AISlop
 
         public static string? ExtractJson(string rawResponse)
         {
-            int startIndex = rawResponse.IndexOf('{');
-            if (startIndex == -1)
+            if (string.IsNullOrWhiteSpace(rawResponse))
                 return null;
 
-            int endIndex = rawResponse.LastIndexOf('}');
-            if (endIndex == -1)
+            var matches = Regex.Matches(
+                rawResponse,
+                @"\{(?:[^{}]|(?<open>\{)|(?<-open>\}))*\}(?(open)(?!))",
+                RegexOptions.Singleline
+            );
+
+            if (matches.Count == 0)
                 return null;
 
-            if (endIndex < startIndex)
-                return null;
+            string firstJson = matches[0].Value;
 
-            string jsonSubstring = rawResponse.Substring(startIndex, endIndex - startIndex + 1);
+            if (matches.Count > 1)
+            {
+                bool allAreTheSame = matches.Cast<Match>().All(m => m.Value == firstJson);
+
+                if (!allAreTheSame)
+                    return null;
+            }
+            string jsonToValidate = firstJson.Trim();
 
             try
             {
-                JsonDocument.Parse(jsonSubstring);
-                return jsonSubstring;
+                JsonDocument.Parse(jsonToValidate);
+                return jsonToValidate;
             }
             catch (JsonException)
             {

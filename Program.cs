@@ -19,7 +19,7 @@ Action<string> displayToolCallUsage = (toolcall) =>
 };
 
 Tools tools = new();
-AIWrapper Agent = new("qwen3-coder:30b-a3b-q4_K_M");
+AIWrapper Agent = new("gemma3:4b-it-qat");
 
 Console.Write("Task: ");
 string taskString = Console.ReadLine()!;

@@ -7,7 +7,7 @@ namespace AISlop
 {
     public class AIWrapper
     {
-        TornadoApi api = new(new Uri("http://localhost:11434")); // default Ollama port, API key can be passed in the second argument if needed
+        TornadoApi api = new(new Uri("http://26.86.240.240:11434")); // default Ollama port, API key can be passed in the second argument if needed
         Conversation _conversation = null!;
         public AIWrapper(string model)
         {

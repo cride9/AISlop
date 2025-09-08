@@ -1,4 +1,4 @@
-﻿using QuestPDF.Fluent;
+﻿﻿using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Markdown;
 using System.Diagnostics;
@@ -11,9 +11,10 @@ namespace AISlop
 {
     public class Tools
     {
-        string _workspace = "workspace";
+       // string _workspace = "workspace";
         string _workspaceRoot = "workspace";
         string _workspacePlan = "workspace";
+        
 
         public Tools()
         {
@@ -30,19 +31,20 @@ namespace AISlop
         {
             "tool": "CreateDirectory",
             "args": {
-                "name": "directoryName"
+                "name": "directoryName",
+                "cwd":"CurrentWorkingDirectory"
             }
         }
         */
-        public string CreateDirectory(string name, bool setAsActive)
+        public string CreateDirectory(string name,String cwd)
         {
-            string folder = Path.Combine(_workspace, name);
+            string folder = Path.Combine(cwd, name);
             if (Directory.Exists(folder))
                 return $"Directory already exists with name: \"{name}\"";
 
             var output = Directory.CreateDirectory(folder);
-            if (setAsActive)
-                _workspace = folder;
+            //if (setAsActive)
+               // Changedirectory(folder,cwd)
             return $"Directory created at: \"{folder}\"." + (setAsActive ? $" Current active directory: \"{folder}\"" : "");
         }
         /*
@@ -50,23 +52,19 @@ namespace AISlop
             "tool": "CreateFile",
             "args": {
                 "filename": "FilaName.extension",
-                "content": "file content"
-            }
+                "content": "file content",
+                "cwd":"CurrentWorkingDirectory"
+
+            
         }
         */
-        public string CreateFile(string filename, string content)
+        public string CreateFile(string filename, string content, String cwd)
         {
-            string filePath = Path.Combine(_workspace, filename);
+            string filePath = Path.Combine(cwd, filename);
             if (File.Exists(filePath))
                 return $"A file with that name already exists in the workspace: {filename}";
 
-            if (filename.ToLower().Contains("plan"))
-            {
-                if (!_workspacePlan.Contains("plan"))
-                    _workspacePlan = filePath;
-                else
-                    filePath = _workspacePlan;
-            }
+            
 
                 using var file = File.Create(filePath);
             using StreamWriter sw = new(file, Encoding.UTF8);
@@ -82,14 +80,15 @@ namespace AISlop
             "tool": "ReadFile",
             "args": {
                 "filename": "FilaName.extension",
+                "cwd":"CurrentWorkingDirectory"
+
             }
         }
         */
-        public string ReadFile(string filename)
+        public string ReadFile(string filename,String cwd)
         {
-            string filePath = Path.Combine(_workspace, filename);
-            if (filename.ToLower().Contains("plan"))
-                filePath = _workspacePlan;
+            string filePath = Path.Combine(cwd, filename);
+            
 
             if (!File.Exists(filePath))
                 return $"The file does not exists: \"{filePath}\"";
@@ -101,18 +100,19 @@ namespace AISlop
         }
         /*
         {
-            "tool": "ModifyFile",
+            "tool": "OverwriteFile",
             "args": {
                 "filename": "FilaName.extension",
-                "insertText": "text"
+                "insertText": "text",
+                "cwd":"CurrentWorkingDirectory"
+
             }
         }
         */
-        public string ModifyFile(string filename, string text)
+        public string OverwriteFile(string filename, string text,String cwd)
         {
-            string filePath = Path.Combine(_workspace, filename);
-            if (filename.ToLower().Contains("plan"))
-                filePath = _workspacePlan;
+            string filePath = Path.Combine(cwd, filename);
+            
 
             if (!File.Exists(filePath))
                 return $"The file does not exists: \"{filePath}\"";
@@ -122,16 +122,77 @@ namespace AISlop
         }
         /*
         {
-            "tool": "GetWorkspaceEntries",
+            "tool": "ListDirectory",
             "args": {
+                "recursive":"IsRecursive",
+                "cwd":"CurrentWorkingDirectory"
+
             }
         }
         */
-        public string GetWorkspaceEntries()
+        public string ListDirectory(bool recursive, String cwd)
         {
-            var terminalOutput = ExecuteTerminal("tree /f | more +3");
-            return $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
+            //var terminalOutput = ExecuteTerminal("tree /f | more +3");
+            // $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
+
+            //REKRÚZÍV RÉSZT NEM TELJSEN ÉRTEM HOGY ÍGY GONDOLTAD E 
+            //ez passz nem tudom hogy kéne e 
+            if (!Directory.Exists(cwd)) { 
+                return $"The directory does not exists: \"{cwd}\"
+            }
+
+            StringBuilder resultBuilder = new StringBuilder();
+            if (recursive)
+            {
+                string[] directoryList = Directory.GetDirectories(_workspaceRoot);
+            }
+            else {
+                string[] directoryList = Directory.GetDirectories(cwd);
+            }
+            foreach (string directory in directoryList)
+                {
+                    resultBuilder.Append("TYPE: DIR, NAME: " + Path.GetFileName(directory) + "\n");
+                    string[] fileList = Directory.GetFiles(directory);
+                    foreach (string file in fileList)
+                    {
+                        resultBuilder.Append("TYPE: FILE, NAME: " + Path.GetFileName(file) + "\n");
+                    }
+                }
+            return resultBuilder.ToString();
         }
+        
+            
+       
+
+        /*
+        {
+            "tool": "Changedirectory",
+            "args": {
+                path": "path",
+               "cwd":"CurrentWorkingDirectory"
+
+            }
+        }
+        */
+        public String Changedirectory(String path,String cwd) {
+            if (path == cwd) { 
+                    return $"Alredy in \"{path}\"";
+            }
+            if (!Directory.Exists(path)) {
+                //ha nincs még akkor nem jobb hogy ha meghívja a createt?
+                return $"Not exits: \"{path}\""
+            }
+            if (path.StartsWith("/")) {
+                cwd = Path.Combine(_workspaceRoot, path)
+            }
+            else {
+                cwd = Path.Combine(cwd,path)
+                //bizonytalan vagyok ebbe 
+            return $"Successfully changed to directory \"{path}\"";
+        }
+
+
+
         /*
         {
             "tool": "OpenFolder",
@@ -140,6 +201,8 @@ namespace AISlop
             }
         }
         */
+
+        /*
         public string OpenFolder(string folderName)
         {
             if (folderName == "workspace")
@@ -166,17 +229,22 @@ namespace AISlop
             _workspace = path;
             return $"Successfully changed to folder \"{folderName}\"";
         }
+        */
+
+
         /*
         {
             "tool": "ReadTextFromPDF",
             "args": {
-                "filename": "filename"
+                "filename": "filename",
+                "cwd":"CurrentWorkingDirectory"
+
             }
         }
         */
-        public string ReadTextFromPDF(string filename)
+        public string ReadTextFromPDF(string filename,String cwd)
         {
-            var filePath = Path.Combine(_workspace, filename);
+            var filePath = Path.Combine(cwd, filename);
             if (!File.Exists(filePath))
                 return $"File \"{filename}\" does not exist.";
 
@@ -202,15 +270,17 @@ namespace AISlop
         {
             "tool": "ExecuteTerminal",
             "args": {
-                "command": "command"
+                "command": "command",
+                "cwd":"CurrentWorkingDirectory"
+
             }
         }
         */
-        public string ExecuteTerminal(string command)
+        public string ExecuteTerminal(string command,String cwd)
         {
             var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
             {
-                WorkingDirectory = Path.GetFullPath(_workspace),
+                WorkingDirectory = Path.GetFullPath(cwd),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -235,13 +305,15 @@ namespace AISlop
             "tool": "CreatePdfFile",
             "args": {
                 "fileName": "fileName",
-                "markdownText": "markdownText"
+                "markdownText": "markdownText",
+                "cwd":"CurrentWorkingDirectory"
+
             }
         }
         */
-        public string CreatePdfFile(string filename, string markdowntext)
+        public string CreatePdfFile(string filename, string markdowntext,String cwd)
         {
-            var path = Path.Combine(_workspace, filename);
+            var path = Path.Combine(cwd, filename);
             if (File.Exists(path))
                 return $"File already exists with name {filename} in CWD";
 

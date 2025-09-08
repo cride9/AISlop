@@ -11,7 +11,6 @@ namespace AISlop
 {
     public class Tools
     {
-       // string _workspace = "workspace";
         string _workspaceRoot = "workspace";
         string _workspacePlan = "workspace";
         
@@ -43,8 +42,7 @@ namespace AISlop
                 return $"Directory already exists with name: \"{name}\"";
 
             var output = Directory.CreateDirectory(folder);
-            //if (setAsActive)
-               // Changedirectory(folder,cwd)
+    
             return $"Directory created at: \"{folder}\"." + (setAsActive ? $" Current active directory: \"{folder}\"" : "");
         }
         /*
@@ -132,8 +130,6 @@ namespace AISlop
         */
         public string ListDirectory(bool recursive, String cwd)
         {
-            //var terminalOutput = ExecuteTerminal("tree /f | more +3");
-            // $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
 
             //REKRÚZÍV RÉSZT NEM TELJSEN ÉRTEM HOGY ÍGY GONDOLTAD E 
             //ez passz nem tudom hogy kéne e 
@@ -192,44 +188,6 @@ namespace AISlop
         }
 
 
-
-        /*
-        {
-            "tool": "OpenFolder",
-            "args": {
-                "folderName": "foldername"
-            }
-        }
-        */
-
-        /*
-        public string OpenFolder(string folderName)
-        {
-            if (folderName == "workspace")
-            {
-                _workspace = _workspaceRoot;
-                return $"Successfully changed to folder \"{_workspace}\"";
-            }
-
-            if (_workspace.Contains(folderName))
-                return $"Already in a folder named \"{folderName}\"";
-
-            string path = Path.Combine(_workspace, folderName);
-            string rootPath = Path.Combine(_workspaceRoot, folderName);
-            if (!Directory.Exists(path) && !Directory.Exists(rootPath))
-                return $"Directory \"{folderName}\" does not exist";
-
-            // safe handle, if AI fails to navigate back
-            if (Directory.Exists(rootPath))
-            {
-                _workspace = rootPath;
-                return $"Successfully changed to folder \"{folderName}\"";
-            }
-
-            _workspace = path;
-            return $"Successfully changed to folder \"{folderName}\"";
-        }
-        */
 
 
         /*
@@ -317,7 +275,6 @@ namespace AISlop
             if (File.Exists(path))
                 return $"File already exists with name {filename} in CWD";
 
-            //markdowntext = Regex.Unescape(markdowntext);
             markdowntext = markdowntext.Replace("\\n", "\n").Replace("\\t", "\t");
             var document = Document.Create(container =>
             {

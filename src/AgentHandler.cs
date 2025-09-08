@@ -56,7 +56,7 @@ namespace AISlop
             return await _agent.AskAi($"Tool result: \"Json parser error: {count} json detected! Try again..\"");
         }
 
-        private string ExecuteTool(dynamic toolcall)
+        private string ExecuteTool(Parser.Command toolcall)
         {
             string toolOutput = "";
 

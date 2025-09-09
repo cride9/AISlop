@@ -41,29 +41,34 @@ namespace AISlop
             [JsonPropertyName("thought")]
             public string Thought { get; set; } = string.Empty;
 
-            [JsonPropertyName("tool_call")]
-            public ToolCall ToolCall { get; set; } = null!;
+            [JsonPropertyName("tool_calls")]
+            public IEnumerable<ToolCall> ToolCalls { get; set; } = null!;
         }
 
-        public static Command Parse(string response)
+        public static IEnumerable<Command> Parse(string response)
         {
             string? jsonCommand = ExtractJson(response);
             if (string.IsNullOrEmpty(jsonCommand))
+                return null!;
+
+            if (jsonCommand.StartsWith("Exception"))
                 return null!;
 
             try
             {
 
                 var aiResponse = JsonSerializer.Deserialize<AIResponse>(jsonCommand);
-                if (aiResponse?.ToolCall == null)
+                if (aiResponse is null || aiResponse.ToolCalls.Count() == 0)
                     return null!;
 
-                return new Command
-                {
-                    Thought = aiResponse.Thought,
-                    Tool = aiResponse.ToolCall.Tool,
-                    Args = aiResponse.ToolCall.Args
-                };
+                return aiResponse.ToolCalls
+                    .Select(tc => new Command
+                    {
+                        Thought = aiResponse.Thought,
+                        Tool = tc.Tool,
+                        Args = tc.Args
+                    })
+                    .ToList();
             }
             catch (Exception)
             {
@@ -85,21 +90,16 @@ namespace AISlop
             if (matches.Count == 0)
                 return null;
 
-            string firstJson = matches[0].Value;
-
-            if (matches.Count > 1)
-            {
-                bool allAreTheSame = matches.Cast<Match>().All(m => m.Value == firstJson);
-
-                if (!allAreTheSame)
-                    return null;
-            }
-            string jsonToValidate = firstJson.Trim();
+            var bestMatch = matches
+                .OrderByDescending(m => m.Value.Length)
+                .First()
+                .Value
+                .Trim();
 
             try
             {
-                JsonDocument.Parse(jsonToValidate);
-                return jsonToValidate;
+                JsonDocument.Parse(bestMatch);
+                return bestMatch;
             }
             catch (JsonException)
             {

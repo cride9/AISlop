@@ -12,6 +12,7 @@ namespace AISlop
             public string Thought { get; set; } = string.Empty;
             public string Tool { get; set; } = string.Empty;
             public Dictionary<string, string> Args { get; set; } = null!;
+            public string Error { get; set; }
 
             public override string ToString()
             {
@@ -41,40 +42,41 @@ namespace AISlop
             [JsonPropertyName("thought")]
             public string Thought { get; set; } = string.Empty;
 
-            [JsonPropertyName("tool_call")]
-            public ToolCall ToolCall { get; set; } = null!;
+            [JsonPropertyName("tool_calls")]
+            public IEnumerable<ToolCall> ToolCalls { get; set; } = null!;
         }
 
-        public static Command Parse(string response)
+        public static IEnumerable<Command> Parse(string response)
         {
-            string? jsonCommand = ExtractJson(response);
-            if (string.IsNullOrEmpty(jsonCommand))
-                return null!;
+            string jsonCommand = ExtractJson(response);
+            if (jsonCommand.StartsWith("Exception:"))
+                return new List<Command>() { new() { Error = jsonCommand } };
 
             try
             {
-
                 var aiResponse = JsonSerializer.Deserialize<AIResponse>(jsonCommand);
-                if (aiResponse?.ToolCall == null)
-                    return null!;
+                if (aiResponse is null || aiResponse.ToolCalls.Count() == 0)
+                    return new List<Command>() { new() { Error = "Exception: No jsons found in the response!" } };
 
-                return new Command
-                {
-                    Thought = aiResponse.Thought,
-                    Tool = aiResponse.ToolCall.Tool,
-                    Args = aiResponse.ToolCall.Args
-                };
+                return aiResponse.ToolCalls
+                    .Select(tc => new Command
+                    {
+                        Thought = aiResponse.Thought,
+                        Tool = tc.Tool,
+                        Args = tc.Args
+                    })
+                    .ToList();
             }
-            catch (Exception)
+            catch (JsonException ex)
             {
-                return null!;
+                return new List<Command>() { new() { Error = ex.Message } };
             }
         }
 
-        public static string? ExtractJson(string rawResponse)
+        public static string ExtractJson(string rawResponse)
         {
             if (string.IsNullOrWhiteSpace(rawResponse))
-                return null;
+                return "Exception: Response was empty!";
 
             var matches = Regex.Matches(
                 rawResponse,
@@ -83,27 +85,22 @@ namespace AISlop
             );
 
             if (matches.Count == 0)
-                return null;
+                return "Exception: No jsons found in the response!";
 
-            string firstJson = matches[0].Value;
-
-            if (matches.Count > 1)
-            {
-                bool allAreTheSame = matches.Cast<Match>().All(m => m.Value == firstJson);
-
-                if (!allAreTheSame)
-                    return null;
-            }
-            string jsonToValidate = firstJson.Trim();
+            var bestMatch = matches
+                .OrderByDescending(m => m.Value.Length)
+                .First()
+                .Value
+                .Trim();
 
             try
             {
-                JsonDocument.Parse(jsonToValidate);
-                return jsonToValidate;
+                JsonDocument.Parse(bestMatch);
+                return bestMatch;
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
-                return null;
+                return $"Exception: {ex.Message}";
             }
         }
     }

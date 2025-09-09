@@ -1,180 +1,120 @@
-# Slop Agent
+# Planned Improvements for Slop AI Agent
+
+## 1. Executive Summary
+
+The current agent design is a strong foundation with a clear, strict workflow. However, as identified, its rigidity and the complexity of its tools create a high cognitive load for a small language model (LLM) like a 4B parameter model. These models excel at simple, atomic tasks but struggle with multi-step reasoning, complex state management, and remembering abstract rules.
+
+The core theme of these proposed improvements is **Simplicity, Predictability, and Explicitness**. We will reduce the number of "magic" behaviors, make tool actions more atomic, and shift state management from hidden internal variables to an explicit part of the agent loop. This will make the agent easier to debug and more reliable, as the LLM will have fewer complex rules to follow and will be less likely to make incorrect assumptions.
+
 ---
-[![Youtube Video]()](https://www.youtube.com/watch?v=rZmKbu9Q9w4)
 
-This project is focused on running with little models without proper toolcalling support. Since it only uses chat toolcalls based on AI response.
+## 2. System Prompt & Agent Workflow Improvements
 
-A grumpy, file-system-focused, and highly competent local AI agent built with .NET 8. This agent operates autonomously within a local `workspace` directory to execute complex tasks by breaking them down into single, verifiable steps.
+The instructions are the primary interface to the LLM. Simplifying them and aligning them with how small models "think" is the highest-leverage change.
 
-## About The Project
-
-Slop Agent is a console-based AI assistant designed to interact with your local file system. It leverages a local Large Language Model (LLM) to understand user requests, formulate plans, and execute them using a predefined set of tools. Its core philosophy is a strict **Plan-Execute-Verify** loop, ensuring methodical and reliable task completion.
-
-The agent's personality, as defined in its core prompt, is "grumpy but competent." It prioritizes efficiency over chit-chat and expects clear, task-oriented instructions.
-
-## Features
-
--   **Autonomous Task Execution**: Breaks down complex requests into a series of single tool calls.
--   **Comprehensive File & Directory Management**: Can create, read, modify, and list files and directories.
--   **Terminal Command Execution**: Capable of running terminal commands to interact with system tools, build projects, and more.
--   **PDF Interaction**: Can read text from existing PDF files and generate new PDF documents from Markdown.
--   **Interactive User Clarification**: Can pause its workflow to ask the user for more information when a task is ambiguous.
--   **Strict Workflow**: Enforces a methodical approach, often starting by creating a `plan.md` file to outline its strategy for complex tasks.
-
-## How It Works
-
-The agent operates on a simple yet powerful loop managed by `Program.cs`:
-
-1.  **User Input**: The user provides an initial task.
-2.  **AI Thought Process**: The task is sent to the LLM. The agent's core instructions guide it to respond with a JSON object containing its `thought` and a single `tool_call`.
-3.  **JSON Parsing**: The C# application parses the JSON response to determine which tool to use and with what arguments.
-4.  **Tool Execution**: The corresponding C# method for the tool is executed (e.g., creating a file, running a command).
-5.  **Feedback Loop**: The output or result of the tool execution is sent back to the LLM as context for the next step.
-6.  **Verification & Iteration**: The agent continues this loop, often verifying its last action (e.g., listing files after creating one), until the task is complete.
-7.  **Task Completion**: The agent calls the `TaskDone` tool, allowing the user to provide a follow-up task or end the session.
-
-### The Core JSON Contract
-
-The entire agent-to-code communication relies on a strict JSON format. The agent's *only* output must be a single JSON object structured like this:
-
-```json
-{
-    "thought": "A cynical internal monologue about the overall goal and the immediate step-by-step plan.",
-    "tool_call": {
-        "tool": "ToolName",
-        "args": {
-            "arg_name": "value"
-        }
-    }
-}
-```
-
-## Technology Stack
-
--   **Framework**: .NET 8
--   **LLM Interaction**: [LlmTornado](https://github.com/tryAGI/LlmTornado) - A library for interfacing with local and remote LLMs (e.g., via Ollama).
--   **PDF Reading**: [PdfPig](https://github.com/UglyToad/PdfPig) - For extracting text from PDF documents.
--   **PDF Creation**: [QuestPDF](https://www.questpdf.com/) & [QuestPDF.Markdown](https://github.com/QuestPDF/QuestPDF.Markdown) - For generating PDF files from Markdown text.
-
-## Getting Started
-
-Follow these steps to get your own instance of Slop Agent running.
-
-### Prerequisites
-
-1.  **.NET 8 SDK**: [Download and install the .NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
-2.  **A Local LLM Server**: This project is designed to work with a local LLM. [Ollama](https://ollama.com/) is an excellent and easy-to-use option.
-3.  **An LLM Model**: Download a model suitable for instruction-following and tool use. The project is pre-configured for `qwen3:4b-instruct-2507-q4_K_M`, but you can use others like `gemma3`, `gpt-oss`, etc.
-    ```sh
-    # Example using Ollama
-    ollama pull qwen3:4b-instruct-2507-q4_K_M
-    ```
-
-### Installation & Configuration
-
-1.  **Clone the repository**:
-    ```sh
-    git clone <your-repo-url>
-    cd <your-repo-name>
-    ```
-
-2.  **Restore dependencies**:
-    ```sh
-    dotnet restore
-    ```
-
-3.  **Configure the Model**: Open `Program.cs` and change the model name to match the one you have downloaded and are running with your local LLM server.
-
-    ```csharp
-    // In Program.cs
-    AIWrapper Agent = new("your-model-name-here"); // e.g., "qwen3" or "gemma3"
-    ```
-
-### Running the Agent
-
-1.  Ensure your local LLM server (e.g., Ollama) is running.
-2.  Run the application from your terminal:
-    ```sh
-    dotnet run
-    ```
-3.  The application will prompt you for a task. Type your request and press Enter.
-
-    ```
-    Task: Create a python script that prints hello world and then run it.
-    ```
-
-4.  The agent will begin its work, showing you its thoughts and tool usage. When finished, you can enter a new task or type `end` to exit.
-
-## The Agent's Core Instructions
-
-The behavior, personality, and capabilities of the agent are defined by a detailed system prompt. This prompt is the "soul" of the agent.
-
-<details>
-<summary>Click to view the full system prompt</summary>
-
-```
-You are Slop AI, a grumpy but highly competent file system agent. Your sole purpose is to get tasks done efficiently and correctly.
-
-**1. Output Format**
-Your ONLY output must be a single, valid JSON object. **Strictly adhere to this format.** Calling multiple tools or using invalid JSON will cause a parsing failure.
-The thinking you do has to be short but meaningful
-
-{
-    "thought": "Your cynical internal monologue, overall goal, and immediate step-by-step plan go here.",
-    "tool_call":
+### 2.1. Allow Multiple Tool Calls (High Priority)
+- **Problem:** The current rule of **"Strictly ONE tool call per response"** is a major bottleneck. It forces the agent into a slow, multi-turn loop for simple sequences like "check if a file exists, then read it." A small model can easily lose context between these turns.
+- **Proposed Solution:** Modify the JSON output format to accept an array of tool calls.
+    ```json
     {
-        "tool": "ToolName",
-        "args":
-        {
-            "arg_name": "value"
-        }
+        "thought": "Okay, I need to read the plan and then list the files to see what's next. I can do both at once.",
+        "tool_calls": [
+            {
+                "tool": "ReadFile",
+                "args": { "filename": "plan.md" }
+            },
+            {
+                "tool": "ListDirectory",
+                "args": { "recursive": "false" }
+            }
+        ]
     }
-}
+    ```
+- **Benefit:** This allows the agent to batch related, non-conflicting actions (especially read-only actions), significantly speeding up the "Discovery" phase and reducing the chance of context loss.
 
-**2. Your Environment**
-You operate exclusively within a `workspace` directory. This is your root. You cannot and must not attempt to navigate above it.
+### 2.2. Simplify Navigation and Path Handling
+- **Problem:** The current `OpenFolder` tool is confusing. It has special logic for the "magic string" `workspace` and tries to guess the user's intent. This ambiguity is a classic failure point for agents.
+- **Proposed Solution:**
+    1.  Replace `OpenFolder` with a more standard `ChangeDirectory` tool.
+    2.  Introduce standard path conventions in the prompt:
+        -   The workspace root is `/`.
+        -   Paths can be relative (`./subfolder`, `../`) or absolute from the workspace root (`/project/src`).
+    3.  The agent's CWD (Current Working Directory) must be explicitly passed back to it in every prompt from the orchestrator.
+        -   Example prompt addition: `Tool result: "Directory created."\nYour CWD is: "/ProjectX/src"`
+- **Benefit:** The model no longer has to guess or remember complex rules. It sees its current location and can formulate a standard, predictable path for its next action.
 
-**3. Your Workflow**
-You must follow a strict, methodical workflow.
-1.  **Strategize First:** For any complex request (e.g., coding a multi-file project, analyzing data), your **very first action** MUST be to use `CreateFile` to write a `plan.md`. In this file, you will outline your entire high-level strategy. Your `thought` for this step should be about how tedious the request is and why you're forced to write a plan.
-2.  **Follow the Plan-Execute-Verify Loop:** After planning (or for simple tasks), you will enter a loop for every action:
-    *   **Think:** Restate the overall goal and your immediate step in your `thought` field.
-    *   **Execute ONE Action:** Call **only ONE** tool per JSON response.
-    *   **Verify:** Your immediate next step MUST be to verify your previous action worked (e.g., use `GetWorkspaceEntries` after `CreateFile`, or `ExecuteTerminal` to run code you just wrote).
-3.  **Be Paranoid:** Always check your Current Working Directory (`GetWorkspaceEntries`) before any file operation.
+### 2.3. Relax the "Mandatory `plan.md`" Rule
+- **Problem:** Forcing the creation of `plan.md` for *any* multi-step task is too rigid. A small model might correctly identify a simple two-step task (e.g., `CreateDirectory`, `CreateFile`) and can execute it directly. Forcing a plan adds unnecessary latency and another potential point of failure.
+- **Proposed Solution:** Change the instruction from "your first output MUST be the creation of `plan.md`" to "For complex tasks, you SHOULD first create a `plan.md` file to outline your steps."
+- **Benefit:** Gives the model more autonomy. It can choose to plan when necessary but can also proceed directly for simple requests, improving efficiency.
 
-**Proposed Addition to "Your Workflow":**
-**1. Discovery First (for Analysis Tasks):** For any request that requires understanding existing files (like 'document', 'analyze', 'debug', 'refactor'), you cannot act blindly. Your first phase **MUST** be discovery.
-*   Start with `GetWorkspaceEntries` (recursively, if necessary) to map out the entire project structure.
-*   Use `ReadFile` on all relevant source files (`.py`, `.js`, `package.json`, etc.) and configuration files. You must understand what the code *does*.
-*   Synthesize your findings in your `thought` process before moving on. Only after you have a complete picture can you proceed to planning.
+### 2.4. Remove the "Bulk Creation via Terminal" Rule
+- **Problem:** Requiring the use of `ExecuteTerminal` with complex commands like `mkdir folder1\subfolder folder2\subfolder` is asking too much of a 4B model. It is very likely to get the command syntax wrong, especially for cross-platform compatibility.
+- **Proposed Solution:** Remove this rule entirely. If you implement **Proposal 2.1 (Multiple Tool Calls)**, the agent can achieve the same result with a more reliable and explicit series of `CreateDirectory` calls in a single turn.
+    ```json
+    "tool_calls": [
+        { "tool": "CreateDirectory", "args": { "path": "folder1/subfolder" } },
+        { "tool": "CreateDirectory", "args": { "path": "folder2/subfolder" } }
+    ]
+    ```
+- **Benefit:** The agent uses tools it understands well, leading to a much higher success rate than crafting complex shell commands.
 
-**4. Error Handling**
-If a tool call fails, you will receive an error message. In your next turn, you MUST:
-1.  Acknowledge the failure in your `thought` (e.g., "Great, the command failed. Of course it did.").
-2.  Analyze the error.
-3.  Formulate a new plan to fix the problem. Do not give up.
+---
 
-**5. Your Tools**
-You must use the correct tool for the job.
-**1. CreateDirectory**: Creates a directory in the CWD. Args: `name` (string)
-**2. CreateFile**: Creates a file in the CWD. Args: `filename` (string), `content` (string)
-**3. ReadFile**: Reads a file's content from the CWD. Args: `filename` (string)
-**4. ModifyFile**: Inserts text into a file in the CWD. Args: `filename` (string), `lineNumber` (string), `charIndex` (string), `insertText` (string)
-**5. GetWorkspaceEntries**: Lists files and folders in the CWD. Args: *none*
-**6. OpenFolder**: Changes the CWD. Use a folder name or `../`. Args: `folderName` (string)
-**7. TaskDone**: Signals the entire request is complete. Use this ONLY when your full plan is executed. Args: `message` (string)
-**8. AskUser**: Asks the user for clarification if the goal is truly ambiguous. Args: `message` (string)
-**9. ReadTextFromPDF**: Reads text from a PDF in the CWD. Args: `filename` (string)
-**10. ExecuteTerminal**: Executes a command line string. **CRITICAL:** Many commands are interactive. This will cause a failure. You **MUST** find and use flags for non-interactive execution (e.g., `npm create vite@latest my-project -- --template react`). Use `--help` to find these flags.
-**11. CreatePdfFile**: Creates a pdf file in the CWD. Args: `filename` (string), `markdowntext` (string with markdown formating NOT FILE)
+## 3. Tool Design & Implementation Improvements (`Tools.cs`)
 
-**6. Boundaries**
-If the user request is not a task (e.g., small talk, "how are you"), immediately use `TaskDone` with the message "Non-task query rejected." Do not chat.
+The C# tool implementations contain hidden state and side effects that make the system unpredictable. We will refactor them to be **stateless and atomic**.
 
-**7. Signing**
-Always sign the files you create at the end with "Created by: Slop Agent"
-```
+### 3.1. Make the `Tools` Class Stateless (Highest Priority)
+- **Problem:** The `Tools` class manages the CWD (`_workspace`) and the plan file path (`_workspacePlan`) internally. This is dangerous because the agent's state is hidden from the main loop. It makes debugging difficult and prevents the system from being thread-safe or supporting multiple agents.
+- **Proposed Solution:**
+    1.  Remove the `_workspace`, `_workspaceRoot`, and `_workspacePlan` fields from the `Tools` class.
+    2.  Modify every tool method to accept the `currentWorkingDirectory` as a parameter.
+        -   `public string CreateFile(string cwd, string filename, string content)`
+        -   `public string ListDirectory(string cwd, bool recursive)`
+    3.  The main loop in `Program.cs` will be responsible for tracking the CWD and passing it to the tools.
+- **Benefit:** Creates a clean separation of concerns. The `Tools` class is just a collection of functions, and the `Program.cs` is the state machine. The system becomes vastly more predictable and testable.
 
-</details>
-Created by: Slop Agent
+### 3.2. Refactor and Simplify Tools
+- **`CreateDirectory(string name, bool setAsActive)`**
+    - **Problem:** The `setAsActive` parameter is a side effect. A tool should do one thing.
+    - **Solution:** Remove the `setAsActive` parameter. The tool should only create a directory. If the agent wants to move into it, it must make a separate, explicit call to `ChangeDirectory`.
+- **`ModifyFile(string filename, string text)`**
+    - **Problem:** The name is misleading. The implementation is a destructive `Delete` then `Create`.
+    - **Solution:** Rename the tool to `WriteFile` or `OverwriteFile` to make its behavior explicit. This prevents the model from assuming it can perform a partial update.
+        -   `public string WriteFile(string cwd, string filename, string content)`
+- **`OpenFolder(string folderName)`**
+    - **Problem:** Ambiguous behavior and magic strings, as discussed above.
+    - **Solution:** Replace it with `public (string newCwd, string message) ChangeDirectory(string currentCwd, string targetPath)`. This tool's job is to calculate the new valid CWD and return it to the main loop to update the state. It should handle `.` and `..` and prevent escaping the workspace root.
+- **`GetWorkspaceEntries()`**
+    - **Problem:** Relies on a Windows-specific shell command (`tree /f`) which produces unstructured output.
+    - **Solution:** Rename to `ListDirectory` and implement it using `Directory.GetFiles()` and `Directory.GetDirectories()`. The output should be a clean, structured list. Add a `recursive` boolean parameter.
+        -   `public string ListDirectory(string cwd, bool recursive)`
+        -   **Output:** `TYPE: DIR, NAME: folder1\nTYPE: FILE, NAME: readme.md`
+- **Remove Special `plan.md` Logic**
+    - **Problem:** The special handling of `plan.md` in `CreateFile`, `ReadFile`, and `ModifyFile` is "magic" behavior that will confuse the LLM.
+    - **Solution:** Remove all `if (filename.ToLower().Contains("plan"))` blocks. The agent should be responsible for providing the correct path to the plan file just like any other file.
+
+---
+
+## 4. Orchestrator & Parser Improvements (`Program.cs` & `Parser.cs`)
+
+The main loop can be improved to provide better feedback to the LLM and handle tool execution more robustly.
+
+### 4.1. Explicit State Management in the Main Loop
+- **Problem:** Consequence of the stateless `Tools` class. The state needs a new home.
+- **Proposed Solution:** In `Program.cs`, create a `string currentWorkingDirectory` variable, initialize it to the workspace root, and update it based on the output from the `ChangeDirectory` tool. Pass this variable into every tool call.
+- **Benefit:** The state of the agent is now explicit and easy to log and debug.
+
+### 4.2. Robust Argument Handling
+- **Problem:** The current `switch` statement accesses `toolcall.Args["key"]` directly. If the LLM forgets to provide an argument, this will crash the program with a `KeyNotFoundException`.
+- **Proposed Solution:** Before calling a tool, validate that all required arguments are present in the `Args` dictionary. If an argument is missing, return a specific, actionable error message to the LLM.
+    -   **Example Error:** `Tool result: "Error: Missing required argument 'filename' for tool 'CreateFile'."`
+- **Benefit:** Allows the LLM to self-correct. It sees exactly what it did wrong and can retry the call with the correct arguments in the next turn.
+
+### 4.3. More Descriptive JSON Parsing Errors
+- **Problem:** The current JSON error message is generic: `"Json parser error: {count} json detected!"`.
+- **Proposed Solution:** Provide more specific feedback.
+    -   If `ExtractJson` finds multiple *different* JSON objects, the error should be: `"Your output contained multiple, non-identical JSON objects. You must only output a single JSON response."`
+    -   If `JsonSerializer.Deserialize` fails, wrap it in a `try-catch` and forward the `JsonException.Message` to the LLM. Example: `"Your JSON is invalid. Parser error: 'Expected a quote '\"' but found a '}'.'"`.
+- **Benefit:** Gives the model precise information to fix its own syntax errors.

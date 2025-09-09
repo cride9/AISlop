@@ -21,16 +21,18 @@ namespace AISlop
                 Directory.CreateDirectory(_workspaceRoot);
         }
   /*
+        /*
         {
-            "tool": "ReadFile",
+            "tool": "OverwriteFile",
             "args": {
                 "filename": "FilaName.extension",
+                "insertText": "text",
                 "cwd":"CurrentWorkingDirectory"
 
             }
         }
         */
-        public string ReadFile(string filename,string cwd)
+        public string OverwriteFile(string filename, string text,string cwd)
         {
             string filePath = Path.Combine(cwd, filename);
             
@@ -38,10 +40,8 @@ namespace AISlop
             if (!File.Exists(filePath))
                 return $"The file does not exists: \"{filePath}\"";
 
-            var file = File.OpenRead(filePath);
-            using StreamReader sr = new(file);
-
-            return "File content:\n```\n" + sr.ReadToEnd().ToString() + "\n```";
+            File.Delete(filePath);
+            return CreateFile(filename, text);
         }
     }
 }

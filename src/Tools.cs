@@ -20,42 +20,39 @@ namespace AISlop
             if (!Directory.Exists(_workspaceRoot))
                 Directory.CreateDirectory(_workspaceRoot);
         }
-       /*
+        /*
         {
-            "tool": "OpenFolder",
+            "tool": "ReadTextFromPDF",
             "args": {
-                "folderName": "foldername",
-                "cwd": "CurrentWorkingDirectory"
+                "filename": "filename",
+                "cwd":"CurrentWorkingDirectory"
+
             }
         }
         */
-
-        
-        public string OpenFolder(string folderName,string cwd)
+        public string ReadTextFromPDF(string filename,string cwd)
         {
-            if (folderName == cwd)
+            var filePath = Path.Combine(cwd, filename);
+            if (!File.Exists(filePath))
+                return $"File \"{filename}\" does not exist.";
+
+            using var document = PdfDocument.Open(filePath);
+            StringBuilder sb = new();
+            foreach (var page in document.GetPages())
             {
-                cwd = _workspaceRoot;
-                return $"Successfully changed to folder \"{cwd}\"";
+                double? lastY = null;
+                foreach (var word in page.GetWords())
+                {
+                    var y = word.BoundingBox.Top;
+                    if (lastY != null && Math.Abs(lastY.Value - y) > 5)
+                        sb.AppendLine();
+                    
+                    sb.Append($"{word.Text} ");
+                    lastY = y;
+                }
             }
 
-            if (cwd.Contains(folderName))
-                return $"Already in a folder named \"{folderName}\"";
-
-            string path = Path.Combine(cwd, folderName);
-            string rootPath = Path.Combine(_workspaceRoot, folderName);
-            if (!Directory.Exists(path) && !Directory.Exists(rootPath))
-                return $"Directory \"{folderName}\" does not exist";
-
-            // safe handle, if AI fails to navigate back
-            if (Directory.Exists(rootPath))
-            {
-                cwd = rootPath;
-                return $"Successfully changed to folder \"{folderName}\"";
-            }
-
-            cwd = path;
-            return $"Successfully changed to folder \"{folderName}\"";
+            return $"PDF file content:\n{sb.ToString()}";
         }
 
     } 

@@ -87,20 +87,19 @@ namespace AISlop
             if (matches.Count == 0)
                 return "Exception: No jsons found in the response!";
 
-            var bestMatch = matches
-                .OrderByDescending(m => m.Value.Length)
+            var firstMatch = matches
                 .First()
                 .Value
                 .Trim();
 
             try
             {
-                JsonDocument.Parse(bestMatch);
-                return bestMatch;
+                JsonDocument.Parse(firstMatch);
+                return firstMatch;
             }
             catch (JsonException ex)
             {
-                return $"Exception: {ex.Message}";
+                return $"Exception: The first JSON-like structure found was invalid. {ex.Message}";
             }
         }
     }

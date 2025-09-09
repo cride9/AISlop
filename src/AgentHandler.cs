@@ -23,17 +23,17 @@ namespace AISlop
             _agent = new(modelName);
             _toolHandler = new()
             {
-                { "createdirectory", args => _tools.CreateDirectory(args["name"], bool.Parse(args["setasactive"])) },
+                { "createdirectory", args => _tools.CreateDirectory(args["path"], false) },
                 { "createfile", args => _tools.CreateFile(args["filename"], args["content"], _cwd) },
-                { "readfile", args => _tools.ReadFile(args["filename"]) },
-                { "modifyfile", args => _tools.OverwriteFile(args["filename"], args["overridenfilecontent"], _cwd) },
-                { "getworkspaceentries", args => _tools.GetWorkspaceEntries() },
-                { "openfolder", args => _tools.OpenFolder(args["folderName"]) },
+                { "readfile", args => _tools.ReadFile(args["path"]) },
+                { "writefile", args => _tools.OverwriteFile(args["path"], args["content"], _cwd) },
+                { "listdirectory", args => _tools.GetWorkspaceEntries() },
+                { "changedirectory", args => _tools.OpenFolder(args["path"]) },
                 { "taskdone", args => {_agentRunning = false; return _tools.TaskDone(args["message"]); } },
                 { "askuser", args => _tools.AskUser(args["message"]) },
-                { "readtextfrompdf", args => _tools.ReadTextFromPDF(args["filename"]) },
+                { "readtextfrompdf", args => _tools.ReadTextFromPDF(args["path"]) },
                 { "executeterminal", args => $"Command used: {args["command"]}. Output: {_tools.ExecuteTerminal(args["command"], _cwd)}" },
-                { "createpdffile", args => _tools.CreatePdfFile(args["filename"], args["markdowntext"], _cwd) }
+                { "createpdffile", args => _tools.CreatePdfFile(args["path"], args["markdown_content"], _cwd) }
             };
         }
         /// <summary>
@@ -94,7 +94,7 @@ namespace AISlop
             StringBuilder sb = new();
             foreach (var singleCall in toolcalls)
             {
-                if (_toolHandler.TryGetValue(singleCall.Tool, out var func))
+                if (_toolHandler.TryGetValue(singleCall.Tool.ToLower(), out var func))
                     sb.AppendLine($"{singleCall.Tool} output: {func(singleCall.Args)}");
             }
 

@@ -122,10 +122,9 @@ namespace AISlop
         {
             string filePath = Path.Combine(cwd, filename);
 
-            if (!File.Exists(filePath))
-                return $"The file does not exists: \"{filePath}\"";
+            if (File.Exists(filePath))
+                File.Delete(filePath);
 
-            File.Delete(filePath);
             return CreateFile(filename, text, cwd);
         }
         /// <summary>
@@ -134,7 +133,7 @@ namespace AISlop
         /// <returns>CWD folder + file structure</returns>
         public string GetWorkspaceEntries()
         {
-            var terminalOutput = ExecuteTerminal("tree /f | more +3", "");
+            var terminalOutput = ExecuteTerminal("tree /f | more +3", "environment");
             return $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
         }
         /// <summary>
@@ -205,7 +204,7 @@ namespace AISlop
         {
             var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
             {
-                WorkingDirectory = Path.GetFullPath(cwd),
+                WorkingDirectory = Path.Combine("./", cwd),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,

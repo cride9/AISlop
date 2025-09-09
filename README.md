@@ -20,7 +20,7 @@ AISlop is a grumpy but highly competent AI agent designed to efficiently complet
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/AISlop.git
+   git clone https://github.com/cride9/AISlop.git
    cd AISlop
    ```
 

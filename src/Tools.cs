@@ -26,14 +26,6 @@ namespace AISlop
             return _workspace;
         }
 
-        /*
-        {
-            "tool": "CreateDirectory",
-            "args": {
-                "name": "directoryName"
-            }
-        }
-        */
         public string CreateDirectory(string name, bool setAsActive)
         {
             string folder = Path.Combine(_workspace, name);
@@ -45,15 +37,7 @@ namespace AISlop
                 _workspace = folder;
             return $"Directory created at: \"{folder}\"." + (setAsActive ? $" Current active directory: \"{folder}\"" : "");
         }
-        /*
-        {
-            "tool": "CreateFile",
-            "args": {
-                "filename": "FilaName.extension",
-                "content": "file content"
-            }
-        }
-        */
+
         public string CreateFile(string filename, string content)
         {
             string filePath = Path.Combine(_workspace, filename);
@@ -77,14 +61,7 @@ namespace AISlop
 
             return $"File has been created: \"{filename}\" and content written into it";
         }
-        /*
-        {
-            "tool": "ReadFile",
-            "args": {
-                "filename": "FilaName.extension",
-            }
-        }
-        */
+
         public string ReadFile(string filename)
         {
             string filePath = Path.Combine(_workspace, filename);
@@ -99,15 +76,7 @@ namespace AISlop
 
             return "File content:\n```\n" + sr.ReadToEnd().ToString() + "\n```";
         }
-        /*
-        {
-            "tool": "ModifyFile",
-            "args": {
-                "filename": "FilaName.extension",
-                "insertText": "text"
-            }
-        }
-        */
+
         public string ModifyFile(string filename, string text)
         {
             string filePath = Path.Combine(_workspace, filename);
@@ -120,26 +89,13 @@ namespace AISlop
             File.Delete(filePath);
             return CreateFile(filename, text);
         }
-        /*
-        {
-            "tool": "GetWorkspaceEntries",
-            "args": {
-            }
-        }
-        */
+
         public string GetWorkspaceEntries()
         {
             var terminalOutput = ExecuteTerminal("tree /f | more +3");
             return $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
         }
-        /*
-        {
-            "tool": "OpenFolder",
-            "args": {
-                "folderName": "foldername"
-            }
-        }
-        */
+
         public string OpenFolder(string folderName)
         {
             if (folderName == "workspace")
@@ -156,7 +112,6 @@ namespace AISlop
             if (!Directory.Exists(path) && !Directory.Exists(rootPath))
                 return $"Directory \"{folderName}\" does not exist";
 
-            // safe handle, if AI fails to navigate back
             if (Directory.Exists(rootPath))
             {
                 _workspace = rootPath;
@@ -166,14 +121,7 @@ namespace AISlop
             _workspace = path;
             return $"Successfully changed to folder \"{folderName}\"";
         }
-        /*
-        {
-            "tool": "ReadTextFromPDF",
-            "args": {
-                "filename": "filename"
-            }
-        }
-        */
+
         public string ReadTextFromPDF(string filename)
         {
             var filePath = Path.Combine(_workspace, filename);
@@ -198,14 +146,7 @@ namespace AISlop
 
             return $"PDF file content:\n{sb.ToString()}";
         }
-        /*
-        {
-            "tool": "ExecuteTerminal",
-            "args": {
-                "command": "command"
-            }
-        }
-        */
+
         public string ExecuteTerminal(string command)
         {
             var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
@@ -230,22 +171,12 @@ namespace AISlop
             return output + error;
         }
 
-        /*
-        {
-            "tool": "CreatePdfFile",
-            "args": {
-                "fileName": "fileName",
-                "markdownText": "markdownText"
-            }
-        }
-        */
         public string CreatePdfFile(string filename, string markdowntext)
         {
             var path = Path.Combine(_workspace, filename);
             if (File.Exists(path))
                 return $"File already exists with name {filename} in CWD";
 
-            //markdowntext = Regex.Unescape(markdowntext);
             markdowntext = markdowntext.Replace("\\n", "\n").Replace("\\t", "\t");
             var document = Document.Create(container =>
             {
@@ -259,6 +190,21 @@ namespace AISlop
 
             document.GeneratePdf(path);
             return $"File has been created: \"{path}\" and content written into it";
+        }
+
+        public string TaskDone(string message)
+        {
+            Logging.DisplayAgentThought(message, ConsoleColor.Yellow);
+            return "";
+        }
+
+        public string AskUser(string message)
+        {
+            Logging.DisplayAgentThought(message, ConsoleColor.Cyan);
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.Write("Response: ");
+            Console.ForegroundColor = ConsoleColor.Gray;
+            return Console.ReadLine()!;
         }
     }
 }

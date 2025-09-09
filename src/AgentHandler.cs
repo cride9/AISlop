@@ -46,8 +46,8 @@ namespace AISlop
         private async Task<string> HandleAgentResponse(string response)
         {
             var toolcall = Parser.Parse(response);
-            if (toolcall == null)
-                return await HandleInvalidToolcall(response);
+            if (toolcall.Count() == 1 && !string.IsNullOrWhiteSpace(toolcall.First().Error))
+                return await HandleInvalidToolcall(toolcall.First().Error);
 
             string toolOutput = ExecuteTool(toolcall);
 
@@ -62,11 +62,9 @@ namespace AISlop
 
         private async Task<string> HandleInvalidToolcall(string response)
         {
-            int count = Regex.Matches(response, "json", RegexOptions.IgnoreCase).Count;
-            Logging.DisplayToolCallUsage($"Json parser error: {count} json detected!");
-
+            Logging.DisplayToolCallUsage(response);
             Logging.DisplayAgentThought(ConsoleColor.Green);
-            return await _agent.AskAi($"Tool result: \"Json parser error: {count} json detected! Try again..\"");
+            return await _agent.AskAi($"Tool result: {response}");
         }
 
         private string ExecuteTool(IEnumerable<Parser.Command> toolcall)

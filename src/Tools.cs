@@ -118,11 +118,9 @@ namespace AISlop
         /// <param name="filename">file path + name with extension</param>
         /// <param name="text">text to be written into the file</param>
         /// <returns>Status</returns>
-        public string ModifyFile(string filename, string text)
+        public string OverwriteFile(string filename, string text, string cwd)
         {
-            string filePath = Path.Combine(_workspace, filename);
-            if (filename.ToLower().Contains("plan"))
-                filePath = _workspacePlan;
+            string filePath = Path.Combine(cwd, filename);
 
             if (!File.Exists(filePath))
                 return $"The file does not exists: \"{filePath}\"";

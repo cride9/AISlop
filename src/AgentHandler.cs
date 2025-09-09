@@ -9,11 +9,26 @@ namespace AISlop
         private readonly Tools _tools;
         private readonly AIWrapper _agent;
         private bool _agentRunning = true;
+        private Dictionary<string, Func<Dictionary<string, string>, string>> _toolHandler = null!;
 
         public AgentHandler(string modelName)
         {
-            _tools = new Tools();
-            _agent = new AIWrapper(modelName);
+            _tools = new();
+            _agent = new(modelName);
+            _toolHandler = new()
+            {
+                { "createdirectory", args => _tools.CreateDirectory(args["name"], bool.Parse(args["setasactive"])) },
+                { "createfile", args => _tools.CreateFile(args["filename"], args["content"]) },
+                { "readfile", args => _tools.ReadFile(args["filename"]) },
+                { "modifyfile", args => _tools.ModifyFile(args["filename"], args["overridenfilecontent"]) },
+                { "getworkspaceentries", args => _tools.GetWorkspaceEntries() },
+                { "openfolder", args => _tools.OpenFolder(args["folderName"]) },
+                { "taskdone", args => {_agentRunning = false; return _tools.TaskDone(args["message"]); } },
+                { "askuser", args => _tools.AskUser(args["message"]) },
+                { "readtextfrompdf", args => _tools.ReadTextFromPDF(args["filename"]) },
+                { "executeterminal", args => $"Command used: {args["command"]}. Output: {_tools.ExecuteTerminal(args["command"])}" },
+                { "createpdffile", args => _tools.CreatePdfFile(args["filename"], args["markdowntext"]) }
+            };
         }
 
         public async Task RunAsync(string initialTask)
@@ -25,9 +40,7 @@ namespace AISlop
             var response = await _agent.AskAi(initialTask);
 
             while (_agentRunning)
-            {
                 response = await HandleAgentResponse(response);
-            }
         }
 
         private async Task<string> HandleAgentResponse(string response)
@@ -58,65 +71,10 @@ namespace AISlop
 
         private string ExecuteTool(Parser.Command toolcall)
         {
-            string toolOutput = "";
+            if (_toolHandler.TryGetValue(toolcall.Tool, out var func))
+                return func(toolcall.Args);
 
-            switch (toolcall.Tool.ToLower())
-            {
-                case "createdirectory":
-                    toolOutput = _tools.CreateDirectory(toolcall.Args["name"], bool.Parse(toolcall.Args["setasactive"].ToLower()));
-                    break;
-
-                case "createfile":
-                    toolOutput = _tools.CreateFile(toolcall.Args["filename"], toolcall.Args["content"]);
-                    break;
-
-                case "readfile":
-                    toolOutput = _tools.ReadFile(toolcall.Args["filename"]);
-                    break;
-
-                case "modifyfile":
-                    toolOutput = _tools.ModifyFile(toolcall.Args["filename"], toolcall.Args["overridenfilecontent"]);
-                    break;
-
-                case "getworkspaceentries":
-                    toolOutput = _tools.GetWorkspaceEntries();
-                    break;
-
-                case "openfolder":
-                    toolOutput = _tools.OpenFolder(toolcall.Args["folderName"]);
-                    break;
-
-                case "taskdone":
-                    Logging.DisplayAgentThought(toolcall.Args["message"], ConsoleColor.Yellow);
-                    _agentRunning = false;
-                    break;
-
-                case "askuser":
-                    Logging.DisplayAgentThought(toolcall.Args["message"], ConsoleColor.Cyan);
-                    Console.ForegroundColor = ConsoleColor.Magenta;
-                    Console.Write("Response: ");
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    toolOutput = Console.ReadLine()!;
-                    break;
-
-                case "readtextfrompdf":
-                    toolOutput = _tools.ReadTextFromPDF(toolcall.Args["filename"]);
-                    break;
-
-                case "executeterminal":
-                    toolOutput = $"Command used: {toolcall.Args["command"]}. Output: {_tools.ExecuteTerminal(toolcall.Args["command"])}";
-                    break;
-
-                case "createpdffile":
-                    toolOutput = _tools.CreatePdfFile(toolcall.Args["filename"], toolcall.Args["markdowntext"]);
-                    break;
-
-                default:
-                    toolOutput = "No toolcall detected!";
-                    break;
-            }
-
-            return toolOutput;
+            return null!;
         }
 
         private async Task<string> HandleTaskCompletion(string response)

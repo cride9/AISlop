@@ -260,5 +260,20 @@ namespace AISlop
             document.GeneratePdf(path);
             return $"File has been created: \"{path}\" and content written into it";
         }
+
+        public string TaskDone(string message)
+        {
+            Logging.DisplayAgentThought(message, ConsoleColor.Yellow);
+            return ""; // nothing to return
+        }
+
+        public string AskUser(string message)
+        {
+            Logging.DisplayAgentThought(message, ConsoleColor.Cyan);
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.Write("Response: ");
+            Console.ForegroundColor = ConsoleColor.Gray;
+            return Console.ReadLine()!;
+        }
     }
 }

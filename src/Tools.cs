@@ -203,11 +203,11 @@ namespace AISlop
         /// </summary>
         /// <param name="command">Command to run eg.: npm init -y</param>
         /// <returns>CMD output</returns>
-        public string ExecuteTerminal(string command)
+        public string ExecuteTerminal(string command, string cwd)
         {
             var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
             {
-                WorkingDirectory = Path.GetFullPath(_workspace),
+                WorkingDirectory = Path.GetFullPath(cwd),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -215,7 +215,7 @@ namespace AISlop
             };
 
             using var process = Process.Start(processInfo);
-            
+
             string output = process!.StandardOutput.ReadToEnd();
             string error = process.StandardError.ReadToEnd();
 
@@ -226,6 +226,7 @@ namespace AISlop
 
             return output + error;
         }
+     
         /// <summary>
         /// Creates a PDF file from markdown input
         /// </summary>

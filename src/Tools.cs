@@ -11,10 +11,6 @@ namespace AISlop
 {
     public class Tools
     {
-        /// <summary>
-        /// DEPRECATED PROPERTIES. HAS TO BE REMOVED AND CODES USED WITH IT REFACTORED
-        /// CWD WILL BE PASSED TO EACH FUNCTION AS AN ARGUMENT
-        /// </summary>
         string _workspace = "environment";
         string _workspaceRoot = "environment";
         string _workspacePlan = "environment";
@@ -23,6 +19,28 @@ namespace AISlop
         {
             if (!Directory.Exists(_workspaceRoot))
                 Directory.CreateDirectory(_workspaceRoot);
+        }
+
+        /// <summary>
+        /// Creates a file
+        /// </summary>
+        /// <param name="filename">Filapath and name WITH extension</param>
+        /// <param name="content">File content</param>
+        /// <returns>Status</returns>
+        public string CreateFile(string filename, string content, string cwd)
+        {
+            string filePath = Path.Combine(cwd, filename);
+            if (File.Exists(filePath))
+                return $"A file with that name already exists in the workspace: {filename}";
+            
+            using var file = File.Create(filePath);
+            using StreamWriter sw = new(file, Encoding.UTF8);
+
+            content = Regex.Unescape(content);
+
+            sw.Write(content);
+
+            return $"File has been created: \"{filename}\" and content written into it";
         }
 
         /// <summary>
@@ -74,35 +92,7 @@ namespace AISlop
                 _workspace = folder;
             return $"Directory created at: \"{folder}\"." + (setAsActive ? $" Current active directory: \"{folder}\"" : "");
         }
-        /// <summary>
-        /// Creates a file
-        /// </summary>
-        /// <param name="filename">Filapath and name WITH extension</param>
-        /// <param name="content">File content</param>
-        /// <returns>Status</returns>
-        public string CreateFile(string filename, string content)
-        {
-            string filePath = Path.Combine(_workspace, filename);
-            if (File.Exists(filePath))
-                return $"A file with that name already exists in the workspace: {filename}";
 
-            if (filename.ToLower().Contains("plan"))
-            {
-                if (!_workspacePlan.Contains("plan"))
-                    _workspacePlan = filePath;
-                else
-                    filePath = _workspacePlan;
-            }
-
-                using var file = File.Create(filePath);
-            using StreamWriter sw = new(file, Encoding.UTF8);
-
-            content = Regex.Unescape(content);
-
-            sw.Write(content);
-
-            return $"File has been created: \"{filename}\" and content written into it";
-        }
         /// <summary>
         /// Reads a file content
         /// </summary>

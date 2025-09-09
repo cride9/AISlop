@@ -231,9 +231,9 @@ namespace AISlop
         /// <param name="filename">path + filename with extension</param>
         /// <param name="markdowntext">markdown input</param>
         /// <returns>Status</returns>
-        public string CreatePdfFile(string filename, string markdowntext)
+        public string CreatePdfFile(string filename, string markdowntext, string cwd)
         {
-            var path = Path.Combine(_workspace, filename);
+            var path = Path.Combine(cwd, filename);
             if (File.Exists(path))
                 return $"File already exists with name {filename} in CWD";
 

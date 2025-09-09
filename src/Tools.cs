@@ -20,32 +20,42 @@ namespace AISlop
             if (!Directory.Exists(_workspaceRoot))
                 Directory.CreateDirectory(_workspaceRoot);
         }
-        /*
+       /*
         {
-            "tool": "Changedirectory",
+            "tool": "OpenFolder",
             "args": {
-                path": "path",
-               "cwd":"CurrentWorkingDirectory"
-
+                "folderName": "foldername",
+                "cwd": "CurrentWorkingDirectory"
             }
         }
         */
-        public String Changedirectory(String path, string cwd) {
-            if (path == cwd) {
-                return $"Alredy in \"{path}\"";
+
+        
+        public string OpenFolder(string folderName,string cwd)
+        {
+            if (folderName == cwd)
+            {
+                cwd = _workspaceRoot;
+                return $"Successfully changed to folder \"{cwd}\"";
             }
-            if (!Directory.Exists(path)) {
-                //ha nincs még akkor nem jobb hogy ha meghívja a createt?
-                return $"Not exits: \"{path}\"";
+
+            if (cwd.Contains(folderName))
+                return $"Already in a folder named \"{folderName}\"";
+
+            string path = Path.Combine(cwd, folderName);
+            string rootPath = Path.Combine(_workspaceRoot, folderName);
+            if (!Directory.Exists(path) && !Directory.Exists(rootPath))
+                return $"Directory \"{folderName}\" does not exist";
+
+            // safe handle, if AI fails to navigate back
+            if (Directory.Exists(rootPath))
+            {
+                cwd = rootPath;
+                return $"Successfully changed to folder \"{folderName}\"";
             }
-            if (path.StartsWith("/")) {
-                cwd = Path.Combine(_workspaceRoot, path);
-            }
-            else {
-                cwd = Path.Combine(cwd, path);
-                //bizonytalan vagyok ebbe 
-                 return $"Successfully changed to directory \"{path}\"";
-            }
+
+            cwd = path;
+            return $"Successfully changed to folder \"{folderName}\"";
         }
 
     } 

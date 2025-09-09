@@ -12,6 +12,7 @@ namespace AISlop
             public string Thought { get; set; } = string.Empty;
             public string Tool { get; set; } = string.Empty;
             public Dictionary<string, string> Args { get; set; } = null!;
+            public string Error { get; set; }
 
             public override string ToString()
             {
@@ -47,19 +48,15 @@ namespace AISlop
 
         public static IEnumerable<Command> Parse(string response)
         {
-            string? jsonCommand = ExtractJson(response);
-            if (string.IsNullOrEmpty(jsonCommand))
-                return null!;
-
-            if (jsonCommand.StartsWith("Exception"))
-                return null!;
+            string jsonCommand = ExtractJson(response);
+            if (jsonCommand.StartsWith("Exception:"))
+                return new List<Command>() { new() { Error = jsonCommand } };
 
             try
             {
-
                 var aiResponse = JsonSerializer.Deserialize<AIResponse>(jsonCommand);
                 if (aiResponse is null || aiResponse.ToolCalls.Count() == 0)
-                    return null!;
+                    return new List<Command>() { new() { Error = "Exception: No jsons found in the response!" } };
 
                 return aiResponse.ToolCalls
                     .Select(tc => new Command
@@ -70,16 +67,16 @@ namespace AISlop
                     })
                     .ToList();
             }
-            catch (Exception)
+            catch (JsonException ex)
             {
-                return null!;
+                return new List<Command>() { new() { Error = ex.Message } };
             }
         }
 
-        public static string? ExtractJson(string rawResponse)
+        public static string ExtractJson(string rawResponse)
         {
             if (string.IsNullOrWhiteSpace(rawResponse))
-                return null;
+                return "Exception: Response was empty!";
 
             var matches = Regex.Matches(
                 rawResponse,
@@ -88,7 +85,7 @@ namespace AISlop
             );
 
             if (matches.Count == 0)
-                return null;
+                return "Exception: No jsons found in the response!";
 
             var bestMatch = matches
                 .OrderByDescending(m => m.Value.Length)
@@ -101,9 +98,9 @@ namespace AISlop
                 JsonDocument.Parse(bestMatch);
                 return bestMatch;
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
-                return null;
+                return $"Exception: {ex.Message}";
             }
         }
     }

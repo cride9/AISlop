@@ -32,7 +32,7 @@ namespace AISlop
             string filePath = Path.Combine(cwd, filename);
             if (File.Exists(filePath))
                 return $"A file with that name already exists in the workspace: {filename}";
-            
+
             using var file = File.Create(filePath);
             using StreamWriter sw = new(file, Encoding.UTF8);
 
@@ -190,7 +190,7 @@ namespace AISlop
                     var y = word.BoundingBox.Top;
                     if (lastY != null && Math.Abs(lastY.Value - y) > 5)
                         sb.AppendLine();
-                    
+
                     sb.Append($"{word.Text} ");
                     lastY = y;
                 }
@@ -226,16 +226,16 @@ namespace AISlop
 
             return output + error;
         }
-     
+
         /// <summary>
         /// Creates a PDF file from markdown input
         /// </summary>
         /// <param name="filename">path + filename with extension</param>
         /// <param name="markdowntext">markdown input</param>
         /// <returns>Status</returns>
-        public string CreatePdfFile(string filename, string markdowntext)
+        public string CreatePdfFile(string filename, string markdowntext, string cwd)
         {
-            var path = Path.Combine(_workspace, filename);
+            var path = Path.Combine(cwd, filename);
             if (File.Exists(path))
                 return $"File already exists with name {filename} in CWD";
 

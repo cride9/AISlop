@@ -22,38 +22,38 @@ namespace AISlop
         }
         /*
         {
-            "tool": "ReadTextFromPDF",
+            "tool": "ExecuteTerminal",
             "args": {
-                "filename": "filename",
+                "command": "command",
                 "cwd":"CurrentWorkingDirectory"
 
             }
         }
         */
-        public string ReadTextFromPDF(string filename,string cwd)
+        public string ExecuteTerminal(string command,string cwd)
         {
-            var filePath = Path.Combine(cwd, filename);
-            if (!File.Exists(filePath))
-                return $"File \"{filename}\" does not exist.";
-
-            using var document = PdfDocument.Open(filePath);
-            StringBuilder sb = new();
-            foreach (var page in document.GetPages())
+            var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
             {
-                double? lastY = null;
-                foreach (var word in page.GetWords())
-                {
-                    var y = word.BoundingBox.Top;
-                    if (lastY != null && Math.Abs(lastY.Value - y) > 5)
-                        sb.AppendLine();
-                    
-                    sb.Append($"{word.Text} ");
-                    lastY = y;
-                }
-            }
+                WorkingDirectory = Path.GetFullPath(cwd),
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = false
+            };
 
-            return $"PDF file content:\n{sb.ToString()}";
+            using var process = Process.Start(processInfo);
+            
+            string output = process!.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+
+            process.WaitForExit();
+
+            if (string.IsNullOrWhiteSpace(output.Trim()))
+                output = "Command success!";
+
+            return output + error;
         }
+
 
     } 
 }

@@ -22,43 +22,31 @@ namespace AISlop
         }
         /*
         {
-            "tool": "ListDirectory",
+            "tool": "Changedirectory",
             "args": {
-                "recursive":"IsRecursive",
-                "cwd":"CurrentWorkingDirectory"
+                path": "path",
+               "cwd":"CurrentWorkingDirectory"
 
             }
         }
         */
-        public string ListDirectory(bool recursive, string cwd)
-        {
-
-
-            //REKRÚZÍV RÉSZT NEM TELJSEN ÉRTEM HOGY ÍGY GONDOLTAD E 
-            if (!Directory.Exists(cwd))
-            {
-                return $"The directory does not exists: \"{cwd}\"";
+        public String Changedirectory(String path, string cwd) {
+            if (path == cwd) {
+                return $"Alredy in \"{path}\"";
             }
-
-            StringBuilder resultBuilder = new StringBuilder();
-            if (recursive)
-            {
-                string[] directoryList = Directory.GetDirectories(_workspaceRoot);
+            if (!Directory.Exists(path)) {
+                //ha nincs még akkor nem jobb hogy ha meghívja a createt?
+                return $"Not exits: \"{path}\"";
             }
-            else
-            {
-                string[] directoryList = Directory.GetDirectories(cwd);
+            if (path.StartsWith("/")) {
+                cwd = Path.Combine(_workspaceRoot, path);
             }
-            foreach (string directory in directoryList)
-            {
-                resultBuilder.Append("TYPE: DIR, NAME: " + Path.GetFileName(directory) + "\n");
-                string[] fileList = Directory.GetFiles(directory);
-                foreach (string file in fileList)
-                {
-                    resultBuilder.Append("TYPE: FILE, NAME: " + Path.GetFileName(file) + "\n");
-                }
+            else {
+                cwd = Path.Combine(cwd, path);
+                //bizonytalan vagyok ebbe 
+                 return $"Successfully changed to directory \"{path}\"";
             }
-            return resultBuilder.ToString();
         }
+
     } 
 }

@@ -20,35 +20,28 @@ namespace AISlop
             if (!Directory.Exists(_workspaceRoot))
                 Directory.CreateDirectory(_workspaceRoot);
         }
-
-        /*
-         {
-             "tool": "CreateFile",
-             "args": {
-                 "filename": "FilaName.extension",
-                 "content": "file content",
-                 "cwd":"CurrentWorkingDirectory"
-
-
-         }
-         */
-        public string CreateFile(string filename, string content, string cwd)
+  /*
         {
-            string filePath = Path.Combine(cwd, filename);
-            if (File.Exists(filePath)){
-                return $"A file with that name already exists in the workspace: {filename}";
+            "tool": "ReadFile",
+            "args": {
+                "filename": "FilaName.extension",
+                "cwd":"CurrentWorkingDirectory"
 
             }
-
-            using var file = File.Create(filePath);
-            using StreamWriter sw = new(file, Encoding.UTF8);
-
-            content = Regex.Unescape(content);
-
-            sw.Write(content);
-
-            return $"File has been created: \"{filename}\" and content written into it";
         }
-    
+        */
+        public string ReadFile(string filename,string cwd)
+        {
+            string filePath = Path.Combine(cwd, filename);
+            
+
+            if (!File.Exists(filePath))
+                return $"The file does not exists: \"{filePath}\"";
+
+            var file = File.OpenRead(filePath);
+            using StreamReader sr = new(file);
+
+            return "File content:\n```\n" + sr.ReadToEnd().ToString() + "\n```";
+        }
     }
 }

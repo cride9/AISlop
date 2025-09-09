@@ -8,6 +8,7 @@ namespace AISlop
     {
         private readonly Tools _tools;
         private readonly AIWrapper _agent;
+        private string _cwd = "environment";
         private bool _agentRunning = true;
         private Dictionary<string, Func<Dictionary<string, string>, string>> _toolHandler = null!;
 
@@ -18,16 +19,16 @@ namespace AISlop
             _toolHandler = new()
             {
                 { "createdirectory", args => _tools.CreateDirectory(args["name"], bool.Parse(args["setasactive"])) },
-                { "createfile", args => _tools.CreateFile(args["filename"], args["content"]) },
+                { "createfile", args => _tools.CreateFile(args["filename"], args["content"], _cwd) },
                 { "readfile", args => _tools.ReadFile(args["filename"]) },
-                { "modifyfile", args => _tools.ModifyFile(args["filename"], args["overridenfilecontent"]) },
+                { "modifyfile", args => _tools.OverwriteFile(args["filename"], args["overridenfilecontent"], _cwd) },
                 { "getworkspaceentries", args => _tools.GetWorkspaceEntries() },
                 { "openfolder", args => _tools.OpenFolder(args["folderName"]) },
                 { "taskdone", args => {_agentRunning = false; return _tools.TaskDone(args["message"]); } },
                 { "askuser", args => _tools.AskUser(args["message"]) },
                 { "readtextfrompdf", args => _tools.ReadTextFromPDF(args["filename"]) },
-                { "executeterminal", args => $"Command used: {args["command"]}. Output: {_tools.ExecuteTerminal(args["command"])}" },
-                { "createpdffile", args => _tools.CreatePdfFile(args["filename"], args["markdowntext"]) }
+                { "executeterminal", args => $"Command used: {args["command"]}. Output: {_tools.ExecuteTerminal(args["command"], _cwd)}" },
+                { "createpdffile", args => _tools.CreatePdfFile(args["filename"], args["markdowntext"], _cwd) }
             };
         }
 

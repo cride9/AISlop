@@ -126,7 +126,7 @@ namespace AISlop
                 return $"The file does not exists: \"{filePath}\"";
 
             File.Delete(filePath);
-            return CreateFile(filename, text);
+            return CreateFile(filename, text, cwd);
         }
         /// <summary>
         /// Lists out files, DEPRECATED currently not priority, cmd return a decent string for the Agent
@@ -134,7 +134,7 @@ namespace AISlop
         /// <returns>CWD folder + file structure</returns>
         public string GetWorkspaceEntries()
         {
-            var terminalOutput = ExecuteTerminal("tree /f | more +3");
+            var terminalOutput = ExecuteTerminal("tree /f | more +3", "");
             return $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
         }
         /// <summary>

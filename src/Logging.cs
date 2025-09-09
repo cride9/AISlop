@@ -8,7 +8,7 @@ namespace AISlop
         {
             Console.ForegroundColor = color;
             Console.Write("Slop Agent: ");
-            Console.ForegroundColor = ConsoleColor.White; // reset for the text
+            Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine($"{thought}\n");
         }
 
@@ -16,14 +16,14 @@ namespace AISlop
         {
             Console.ForegroundColor = color;
             Console.Write("Slop Agent: ");
-            Console.ForegroundColor = ConsoleColor.White; // reset for the text
+            Console.ForegroundColor = ConsoleColor.White;
         }
 
         public static void DisplayToolCallUsage(string toolcall)
         {
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.Write("Toolcall: ");
-            Console.ForegroundColor = ConsoleColor.DarkGray; // reset for the text
+            Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.WriteLine($"{toolcall}\n");
         }
     }

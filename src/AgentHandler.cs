@@ -69,10 +69,13 @@ namespace AISlop
             return await _agent.AskAi($"Tool result: \"Json parser error: {count} json detected! Try again..\"");
         }
 
-        private string ExecuteTool(Parser.Command toolcall)
+        private string ExecuteTool(IEnumerable<Parser.Command> toolcall)
         {
-            if (_toolHandler.TryGetValue(toolcall.Tool, out var func))
-                return func(toolcall.Args);
+            foreach (var singleCall in toolcall)
+            {
+                if (_toolHandler.TryGetValue(singleCall.Tool, out var func))
+                    return func(singleCall.Args);
+            }
 
             return null!;
         }

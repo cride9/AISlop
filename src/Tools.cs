@@ -22,25 +22,33 @@ namespace AISlop
         }
 
         /*
+         {
+             "tool": "CreateFile",
+             "args": {
+                 "filename": "FilaName.extension",
+                 "content": "file content",
+                 "cwd":"CurrentWorkingDirectory"
+
+
+         }
+         */
+        public string CreateFile(string filename, string content, string cwd)
         {
-            "tool": "CreateDirectory",
-            "args": {
-                "name": "directoryName",
-                "cwd":"CurrentWorkingDirectory"
+            string filePath = Path.Combine(cwd, filename);
+            if (File.Exists(filePath)){
+                return $"A file with that name already exists in the workspace: {filename}";
+
             }
+
+            using var file = File.Create(filePath);
+            using StreamWriter sw = new(file, Encoding.UTF8);
+
+            content = Regex.Unescape(content);
+
+            sw.Write(content);
+
+            return $"File has been created: \"{filename}\" and content written into it";
         }
-        */
-        public string CreateDirectory(string name,string cwd)
-        {
-            string folder = Path.Combine(cwd, name);
-            if (Directory.Exists(folder))
-                return $"Directory already exists with name: \"{name}\"";
-
-            var output = Directory.CreateDirectory(folder);
-            
-            return $"Directory created at: \"{folder}\"." + (setAsActive ? $" Current active directory: \"{folder}\"" : "");
-        } 
-
     
     }
 }

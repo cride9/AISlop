@@ -14,6 +14,5 @@ if (taskString.Contains("--log"))
     taskString = taskString.Replace("--log", "");
 }
 
-var agentHandler = new AgentHandler("qwen3:4b-instruct-2507-q4_K_M");
+var agentHandler = new AgentHandler("qwen3:30b-a3b-instruct-2507-q4_K_M");
 await agentHandler.RunAsync(taskString);
-sw.Close();

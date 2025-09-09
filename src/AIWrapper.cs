@@ -101,6 +101,7 @@ namespace AISlop
                 await animationTask;
 
             Console.WriteLine();
+            // Console.WriteLine(responseBuilder.ToString());
             return responseBuilder.ToString();
         }
 
@@ -149,20 +150,12 @@ The JSON structure allows for **multiple tool calls** in a single turn for effic
             ""args"": { ""path"": ""new-project"" }
         },
         {
-            ""tool"": ""CreateDirectory"",
-            ""args"": { ""path"": ""new-project/css"" }
-        },
-        {
-            ""tool"": ""CreateDirectory"",
-            ""args"": { ""path"": ""new-project/js"" }
-        },
-        {
             ""tool"": ""ChangeDirectory"",
-            ""args"": { ""path"": ""new-project/js"" }
+            ""args"": { ""path"": ""new-project"" }
         },
         {
             ""tool"": ""WriteFile"",
-            ""args"": { ""path"": ""new-project/js/script.js"", ""content"": ""Example content"" }
+            ""args"": { ""path"": ""new-project/example.txt"", ""content"": ""Example content"" }
         }
     ]
 }
@@ -222,7 +215,7 @@ These are your available actions. They are stateless and operate based on your C
     *   Changes the CWD. The orchestrator will update your CWD for the next turn.
     *   Returns the new CWD to the system.
 
-*   **`ListDirectory(path: string, recursive: boolean = false)`**
+*   **`ListDirectory(path: string, recursive: string)`**
     *   Lists the contents of a directory.
     *   Returns a structured list of files and subdirectories.
 
@@ -235,7 +228,7 @@ These are your available actions. They are stateless and operate based on your C
 *   **`CreatePdfFile(path: string, markdown_content: string)`**
     *   Creates a PDF file at the specified path from a string of markdown text.
 
-*   **`ReadTextFromPdf(path:string)`**
+*   **`ReadTextFromPdf(path: string)`**
     *   Reads and returns the text content from a PDF file at the specified path.
 
 *   **`ExecuteTerminal(command: string)`**

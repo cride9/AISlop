@@ -141,29 +141,22 @@ namespace AISlop
         /// </summary>
         /// <param name="folderName">path to the folder</param>
         /// <returns>Status</returns>
-        public string OpenFolder(string folderName)
+        public string OpenFolder(string folderName, ref string cwd)
         {
-            if (folderName == "workspace")
+            if (folderName == "environment")
             {
-                _workspace = _workspaceRoot;
-                return $"Successfully changed to folder \"{_workspace}\"";
+                cwd = "environment";
+                return $"Successfully changed to folder \"{cwd}\"";
             }
 
-            if (_workspace.Contains(folderName))
+            if (cwd.Contains(folderName))
                 return $"Already in a folder named \"{folderName}\"";
 
-            string path = Path.Combine(_workspace, folderName);
-            string rootPath = Path.Combine(_workspaceRoot, folderName);
-            if (!Directory.Exists(path) && !Directory.Exists(rootPath))
+            string path = Path.Combine(cwd, folderName);
+            if (!Directory.Exists(path))
                 return $"Directory \"{folderName}\" does not exist";
 
-            if (Directory.Exists(rootPath))
-            {
-                _workspace = rootPath;
-                return $"Successfully changed to folder \"{folderName}\"";
-            }
-
-            _workspace = path;
+            cwd = path;
             return $"Successfully changed to folder \"{folderName}\"";
         }
         /// <summary>

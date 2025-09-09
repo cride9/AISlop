@@ -28,7 +28,7 @@ namespace AISlop
                 { "readfile", args => _tools.ReadFile(args["path"]) },
                 { "writefile", args => _tools.OverwriteFile(args["path"], args["content"], _cwd) },
                 { "listdirectory", args => _tools.GetWorkspaceEntries() },
-                { "changedirectory", args => _tools.OpenFolder(args["path"]) },
+                { "changedirectory", args => _tools.OpenFolder(args["path"], ref _cwd) },
                 { "taskdone", args => {_agentRunning = false; return _tools.TaskDone(args["message"]); } },
                 { "askuser", args => _tools.AskUser(args["message"]) },
                 { "readtextfrompdf", args => _tools.ReadTextFromPDF(args["path"]) },

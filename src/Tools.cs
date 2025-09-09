@@ -22,38 +22,35 @@ namespace AISlop
         }
         /*
         {
-            "tool": "ExecuteTerminal",
+            "tool": "CreatePdfFile",
             "args": {
-                "command": "command",
+                "fileName": "fileName",
+                "markdownText": "markdownText",
                 "cwd":"CurrentWorkingDirectory"
 
             }
         }
         */
-        public string ExecuteTerminal(string command,string cwd)
+        public string CreatePdfFile(string filename, string markdowntext,string cwd)
         {
-            var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
+            var path = Path.Combine(cwd, filename);
+            if (File.Exists(path))
+                return $"File already exists with name {filename} in CWD";
+
+            markdowntext = markdowntext.Replace("\\n", "\n").Replace("\\t", "\t");
+            var document = Document.Create(container =>
             {
-                WorkingDirectory = Path.GetFullPath(cwd),
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = false
-            };
+                container.Page(page =>
+                {
+                    page.PageColor(Colors.White);
+                    page.Margin(40);
+                    page.Content().Markdown(markdowntext);
+                });
+            });
 
-            using var process = Process.Start(processInfo);
-            
-            string output = process!.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-
-            process.WaitForExit();
-
-            if (string.IsNullOrWhiteSpace(output.Trim()))
-                output = "Command success!";
-
-            return output + error;
+            document.GeneratePdf(path);
+            return $"File has been created: \"{path}\" and content written into it";
         }
-
 
     } 
 }

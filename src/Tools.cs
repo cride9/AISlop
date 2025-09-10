@@ -100,6 +100,9 @@ namespace AISlop
         /// <returns>File content</returns>
         public string ReadFile(string filename)
         {
+            if (filename.Contains(".pdf"))
+                return ReadTextFromPDF(filename);
+
             string filePath = Path.Combine(_workspace, filename);
             if (filename.ToLower().Contains("plan"))
                 filePath = _workspacePlan;

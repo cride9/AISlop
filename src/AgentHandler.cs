@@ -30,7 +30,7 @@ namespace AISlop
                 { "listdirectory", args => _tools.GetWorkspaceEntries() },
                 { "changedirectory", args => _tools.OpenFolder(args["path"], ref _cwd) },
                 { "taskdone", args => {_agentRunning = false; return _tools.TaskDone(args["message"]); } },
-                { "askuser", args => _tools.AskUser(args["message"]) },
+                { "askuser", args => _tools.AskUser(args["question"]) },
                 { "readtextfrompdf", args => _tools.ReadTextFromPDF(args["path"]) },
                 { "executeterminal", args => $"Command used: {args["command"]}. Output: {_tools.ExecuteTerminal(args["command"], _cwd)}" },
                 { "createpdffile", args => _tools.CreatePdfFile(args["path"], args["markdown_content"], _cwd) }

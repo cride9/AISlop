@@ -1,7 +1,7 @@
 ﻿using AISlop;
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
-Console.Write("Task: (use --log to generate log form chat)\n");
+Console.Write("Task: (use --log to generate log from chat)\n");
 string taskString = Console.ReadLine()!; Console.WriteLine();
 
 StreamWriter sw = null!;
@@ -14,5 +14,5 @@ if (taskString.Contains("--log"))
     taskString = taskString.Replace("--log", "");
 }
 
-var agentHandler = new AgentHandler("qwen3:30b-a3b-instruct-2507-q4_K_M");
+var agentHandler = new AgentHandler("qwen3:4b-instruct-2507-q8_0");
 await agentHandler.RunAsync(taskString);

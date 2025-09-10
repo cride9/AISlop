@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using static AISlop.Parser;
 
 namespace AISlop
 {
@@ -77,6 +78,8 @@ namespace AISlop
         {
             if (string.IsNullOrWhiteSpace(rawResponse))
                 return "Exception: Response was empty!";
+
+            rawResponse = rawResponse.Replace("{{", "{").Replace("}}", "}");
 
             var matches = Regex.Matches(
                 rawResponse,

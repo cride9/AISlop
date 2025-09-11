@@ -11,14 +11,10 @@ namespace AISlop
 {
     public class Tools
     {
-        string _workspace = "environment";
-        string _workspaceRoot = "environment";
-        string _workspacePlan = "environment";
-
-        public Tools()
+        public Tools(string cwd)
         {
-            if (!Directory.Exists(_workspaceRoot))
-                Directory.CreateDirectory(_workspaceRoot);
+            if (!Directory.Exists(cwd))
+                Directory.CreateDirectory(cwd);
         }
 
         /// <summary>
@@ -44,53 +40,19 @@ namespace AISlop
         }
 
         /// <summary>
-        /// Trims and makes CWD string the same style
-        /// </summary>
-        /// <param name="path">current cwd eg.: "/workspace/project/js" or "C:\...\workspace\project\js"</param>
-        /// <returns>Normalized path string</returns>
-        private static string TrimToWorkspace(string path)
-        {
-            string workspaceRoot = Path.Combine(Directory.GetCurrentDirectory(), "workspace");
-
-            string normalizedFullPath = Path.GetFullPath(path).Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-            string normalizedWorkspace = Path.GetFullPath(workspaceRoot).Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-            normalizedWorkspace = normalizedWorkspace.TrimEnd(Path.DirectorySeparatorChar);
-
-            if (normalizedFullPath.StartsWith(normalizedWorkspace, StringComparison.OrdinalIgnoreCase))
-            {
-                string relativePath = normalizedFullPath.Substring(normalizedWorkspace.Length);
-                return relativePath.TrimStart(Path.DirectorySeparatorChar);
-            }
-
-            if (normalizedFullPath.StartsWith("/" + Path.GetFileName(normalizedWorkspace)))
-            {
-                return normalizedFullPath.Substring(1);
-            }
-
-            return path;
-        }
-
-        public string GetCurrentWorkDirectory()
-        {
-            return _workspace;
-        }
-        /// <summary>
         /// Creates a directory
         /// </summary>
         /// <param name="name">Path to the directory</param>
         /// <param name="setAsActive">DEPRECATED HAS TO BE REMOVED</param>
         /// <returns>Status</returns>
-        public string CreateDirectory(string name, bool setAsActive)
+        public string CreateDirectory(string name, string cwd)
         {
-            string folder = Path.Combine(_workspace, name);
+            string folder = Path.Combine(cwd, name);
             if (Directory.Exists(folder))
                 return $"Directory already exists with name: \"{name}\"";
 
             var output = Directory.CreateDirectory(folder);
-            if (setAsActive)
-                _workspace = folder;
-            return $"Directory created at: \"{folder}\"." + (setAsActive ? $" Current active directory: \"{folder}\"" : "");
+            return $"Directory created at: \"{folder}\".";
         }
 
         /// <summary>
@@ -98,22 +60,19 @@ namespace AISlop
         /// </summary>
         /// <param name="filename">File path + file name with extension</param>
         /// <returns>File content</returns>
-        public string ReadFile(string filename)
+        public string ReadFile(string filename, string cwd)
         {
             if (filename.Contains(".pdf"))
-                return ReadTextFromPDF(filename);
+                return ReadTextFromPDF(filename, cwd);
 
-            string filePath = Path.Combine(_workspace, filename);
-            if (filename.ToLower().Contains("plan"))
-                filePath = _workspacePlan;
-
+            string filePath = Path.Combine(cwd, filename);
             if (!File.Exists(filePath))
                 return $"The file does not exists: \"{filePath}\"";
 
             var file = File.OpenRead(filePath);
             using StreamReader sr = new(file);
 
-            return "File content:\n```\n" + sr.ReadToEnd().ToString() + "\n```";
+            return $"{filename} content:\n```\n" + sr.ReadToEnd().ToString() + "\n```";
         }
         /// <summary>
         /// Overrides a file DEPRECATED has to be "WriteFile" for clarity
@@ -131,13 +90,28 @@ namespace AISlop
             return CreateFile(filename, text, cwd);
         }
         /// <summary>
-        /// Lists out files, DEPRECATED currently not priority, cmd return a decent string for the Agent
+        /// Lists out files
         /// </summary>
         /// <returns>CWD folder + file structure</returns>
-        public string GetWorkspaceEntries()
+        public string ListDirectory(string cwd)
         {
-            var terminalOutput = ExecuteTerminal("tree /f | more +3", "environment");
-            return $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
+            if (!Directory.Exists(cwd))
+                return string.Empty;
+
+            var sb = new StringBuilder();
+            var option = SearchOption.TopDirectoryOnly;
+
+            foreach (var dir in Directory.GetDirectories(cwd, "*", option))
+            {
+                sb.AppendLine("[DIR] " + dir.Replace($"{cwd}\\", ""));
+            }
+
+            foreach (var file in Directory.GetFiles(cwd, "*", option))
+            {
+                sb.AppendLine("[FILE] " + file.Replace($"{cwd}\\", ""));
+            }
+
+            return $"Current directory: {cwd}\n" + sb.ToString();
         }
         /// <summary>
         /// Changes CWD
@@ -146,7 +120,7 @@ namespace AISlop
         /// <returns>Status</returns>
         public string OpenFolder(string folderName, ref string cwd)
         {
-            if (folderName == "environment")
+            if (folderName == "/")
             {
                 cwd = "environment";
                 return $"Successfully changed to folder \"{cwd}\"";
@@ -167,9 +141,9 @@ namespace AISlop
         /// </summary>
         /// <param name="filename">path + filename with extension</param>
         /// <returns></returns>
-        public string ReadTextFromPDF(string filename)
+        public string ReadTextFromPDF(string filename, string cwd)
         {
-            var filePath = Path.Combine(_workspace, filename);
+            var filePath = filename;
             if (!File.Exists(filePath))
                 return $"File \"{filename}\" does not exist.";
 

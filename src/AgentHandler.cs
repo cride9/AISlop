@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace AISlop
 {
@@ -19,21 +20,21 @@ namespace AISlop
         /// <param name="modelName">Ollama model name</param>
         public AgentHandler(string modelName)
         {
-            _tools = new();
+            _tools = new(_cwd);
             _agent = new(modelName);
             _toolHandler = new()
             {
-                { "createdirectory", args => _tools.CreateDirectory(args["path"], false) },
-                { "createfile", args => _tools.CreateFile(args["filename"], args["content"], _cwd) },
-                { "readfile", args => _tools.ReadFile(args["path"]) },
-                { "writefile", args => _tools.OverwriteFile(args["path"], args["content"], _cwd) },
-                { "listdirectory", args => _tools.GetWorkspaceEntries() },
-                { "changedirectory", args => _tools.OpenFolder(args["path"], ref _cwd) },
-                { "taskdone", args => {_agentRunning = false; return _tools.TaskDone(args["message"]); } },
-                { "askuser", args => _tools.AskUser(args["question"]) },
-                { "readtextfrompdf", args => _tools.ReadTextFromPDF(args["path"]) },
-                { "executeterminal", args => $"Command used: {args["command"]}. Output: {_tools.ExecuteTerminal(args["command"], _cwd)}" },
-                { "createpdffile", args => _tools.CreatePdfFile(args["path"], args["markdown_content"], _cwd) }
+                { "createdirectory", args => _tools.CreateDirectory(args.GetValueOrDefault("dirname"), _cwd) },
+                { "createfile", args => _tools.CreateFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("content"), _cwd) },
+                { "readfile", args => _tools.ReadFile(args.GetValueOrDefault("filename"), _cwd) },
+                { "writefile", args => _tools.OverwriteFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("content"), _cwd) },
+                { "listdirectory", args => _tools.ListDirectory(_cwd)},
+                { "changedirectory", args => _tools.OpenFolder(args.GetValueOrDefault("dirname"), ref _cwd) },
+                { "taskdone", args => { _agentRunning = false; return _tools.TaskDone(args.GetValueOrDefault("message")); } },
+                { "askuser", args => _tools.AskUser(args.GetValueOrDefault("question")) },
+                { "readtextfrompdf", args => _tools.ReadTextFromPDF(args.GetValueOrDefault("filename"), _cwd) },
+                { "executeterminal", args => $"Command used: {args.GetValueOrDefault("command")}. Output: {_tools.ExecuteTerminal(args.GetValueOrDefault("command"), _cwd)}" },
+                { "createpdffile", args => _tools.CreatePdfFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("markdown_content"), _cwd) }
             };
         }
         /// <summary>
@@ -47,7 +48,7 @@ namespace AISlop
                 throw new ArgumentNullException("Task was an empty string!");
 
             Logging.DisplayAgentThought(ConsoleColor.Green);
-            var agentResponse = await _agent.AskAi(initialTask);
+            var agentResponse = await _agent.AskAi($"{initialTask}\nCurrent cwd: \"{_cwd}\"");
 
             while (_agentRunning)
                 agentResponse = await HandleAgentResponse(agentResponse);
@@ -82,7 +83,7 @@ namespace AISlop
         {
             Logging.DisplayToolCallUsage(toolException);
             Logging.DisplayAgentThought(ConsoleColor.Green);
-            return await _agent.AskAi($"Tool result: {toolException}");
+            return await _agent.AskAi($"Tool result: {toolException}\nCurrent cwd: \"{_cwd}\"");
         }
         /// <summary>
         /// Executes tools in order
@@ -92,10 +93,17 @@ namespace AISlop
         private string ExecuteTool(IEnumerable<Parser.Command> toolcalls)
         {
             StringBuilder sb = new();
-            foreach (var singleCall in toolcalls)
+            try
             {
-                if (_toolHandler.TryGetValue(singleCall.Tool.ToLower(), out var func))
-                    sb.AppendLine($"{singleCall.Tool} output: {func(singleCall.Args)}");
+                foreach (var singleCall in toolcalls)
+                {
+                    if (_toolHandler.TryGetValue(singleCall.Tool.ToLower(), out var func))
+                        sb.AppendLine($"{singleCall.Tool} output: {func(singleCall.Args)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine(ex.Message);
             }
 
             return sb.ToString();
@@ -120,9 +128,9 @@ namespace AISlop
                 return completeMessage;
 
             Console.WriteLine();
-
+            _agentRunning = true;
             Logging.DisplayAgentThought(ConsoleColor.Green);
-            return await _agent.AskAi($"User followup question/task: {newTask}");
+            return await _agent.AskAi($"User followup question/task: {newTask}\nCurrent cwd: \"{_cwd}\"");
         }
         /// <summary>
         /// 
@@ -133,7 +141,7 @@ namespace AISlop
         {
             Logging.DisplayAgentThought(ConsoleColor.Green);
             return await _agent.AskAi(
-                $"Tool result: \"{toolOutput}\"\nCWD: \"{_tools.GetCurrentWorkDirectory()}\""
+                $"Tool result: \"{toolOutput}\"\nCurrent cwd: \"{_cwd}\""
             );
         }
     }

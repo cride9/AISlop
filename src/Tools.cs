@@ -33,7 +33,6 @@ namespace AISlop
             using StreamWriter sw = new(file, Encoding.UTF8);
 
             content = Regex.Unescape(content);
-
             sw.Write(content);
 
             return $"File has been created: \"{filename}\" and content written into it";
@@ -96,7 +95,7 @@ namespace AISlop
         public string ListDirectory(string cwd)
         {
             if (!Directory.Exists(cwd))
-                return string.Empty;
+                return "Current CWD is empty";
 
             var sb = new StringBuilder();
             var option = SearchOption.TopDirectoryOnly;

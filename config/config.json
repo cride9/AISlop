@@ -1,0 +1,7 @@
+{
+  "model_name": "qwen3:4b-instruct-2507-q8_0",
+  "generate_log": false,
+  "display_thought": true,
+  "display_toolcall": true,
+  "ollama_url": "http://26.86.240.240:11434"
+}

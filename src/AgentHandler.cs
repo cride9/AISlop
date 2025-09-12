@@ -18,10 +18,10 @@ namespace AISlop
         /// Initializes the Tools, Agent, and a ToolHandler for this instance
         /// </summary>
         /// <param name="modelName">Ollama model name</param>
-        public AgentHandler(string modelName)
+        public AgentHandler(string modelName, int streamingState = (int)ProcessingState.StreamingThought)
         {
             _tools = new(_cwd);
-            _agent = new(modelName);
+            _agent = new(modelName, streamingState);
             _toolHandler = new()
             {
                 { "createdirectory", args => _tools.CreateDirectory(args.GetValueOrDefault("dirname"), _cwd) },

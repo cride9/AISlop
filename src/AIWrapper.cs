@@ -1,6 +1,7 @@
 ﻿using LlmTornado;
 using LlmTornado.Chat;
 using LlmTornado.Chat.Models;
+using Markdig.Syntax.Inlines;
 using System.Text;
 
 namespace AISlop
@@ -11,122 +12,97 @@ namespace AISlop
         /// Api support: https://github.com/lofcz/LlmTornado
         /// Note: this is a private VPN IP change this to either "localhost" or your LLM server
         /// </summary>
-        TornadoApi api = new(new Uri("http://26.86.240.240:11434")); // default Ollama port, API key can be passed in the second argument if needed
+        TornadoApi api = new(new Uri(Config.Settings.ollama_url)); // default Ollama port, API key can be passed in the second argument if needed
         Conversation _conversation = null!;
-        public AIWrapper(string model)
+        int _streamingStates;
+        public AIWrapper(string model, int streamingState)
         {
-            _conversation = api.Chat.CreateConversation(new ChatModel(model, LlmTornado.Code.LLmProviders.Unknown, 64*1024));
+            _conversation = api.Chat.CreateConversation(new ChatModel(model));
             _conversation.AddSystemMessage(_systemInstructions);
+            _streamingStates = streamingState;
         }
         public async Task<string> AskAi(string message)
         {
             var responseBuilder = new StringBuilder();
+            bool toolcallStarted = false;
+            bool thoughtDone = false;
+
+            string newLineBuffer = "";
             string lastPrintedThought = "";
-
             int thoughtValueStartIndex = -1;
-            bool thoughtIsComplete = false;
-
             const string thoughtKey = "\"thought\": \"";
             const string thoughtTerminator = "\",";
 
-            Task? animationTask = null;
-            var cts = new CancellationTokenSource();
-            string newLineBuffer = "";
             await _conversation.AppendUserInput(message)
                 .StreamResponse(chunk =>
                 {
                     responseBuilder.Append(chunk);
-
-                    if (thoughtIsComplete)
-                        return;
-
                     string currentFullResponse = responseBuilder.ToString();
 
-                    if (thoughtValueStartIndex == -1)
+                    if ((_streamingStates & (int)ProcessingState.StreamingThought) != 0 && !toolcallStarted && !thoughtDone)
                     {
-                        int keyIndex = currentFullResponse.IndexOf(thoughtKey);
-                        if (keyIndex != -1)
-                            thoughtValueStartIndex = keyIndex + thoughtKey.Length;
-                    }
-
-                    if (thoughtValueStartIndex != -1)
-                    {
-                        string potentialContent = currentFullResponse.Substring(thoughtValueStartIndex);
-                        string currentThoughtValue;
-
-                        int endMarkerIndex = potentialContent.IndexOf(thoughtTerminator);
-
-                        if (endMarkerIndex != -1)
+                        if (thoughtValueStartIndex == -1)
                         {
-                            currentThoughtValue = potentialContent.Substring(0, endMarkerIndex);
-                            thoughtIsComplete = true;
-
-                            if (animationTask == null)
-                            {
-                                animationTask = ShowSpinner(cts.Token);
-                            }
-                        }
-                        else
-                        {
-                            currentThoughtValue = potentialContent;
+                            int keyIndex = currentFullResponse.IndexOf(thoughtKey);
+                            if (keyIndex != -1)
+                                thoughtValueStartIndex = keyIndex + thoughtKey.Length;
                         }
 
-                        if (currentThoughtValue.Length > lastPrintedThought.Length && currentThoughtValue.StartsWith(lastPrintedThought))
+                        if (thoughtValueStartIndex != -1)
                         {
-                            string newContent = currentThoughtValue.Substring(lastPrintedThought.Length);
-                            if (newContent.Contains("\\"))
+                            string potentialContent = currentFullResponse.Substring(thoughtValueStartIndex);
+                            string currentThoughtValue;
+
+                            int endMarkerIndex = potentialContent.IndexOf(thoughtTerminator);
+
+                            if (endMarkerIndex != -1)
                             {
-                                newLineBuffer = newContent;
+                                currentThoughtValue = potentialContent.Substring(0, endMarkerIndex);
+                                toolcallStarted = thoughtDone = true;
+                                Console.WriteLine(Environment.NewLine);
                             }
                             else
                             {
-                                if (newLineBuffer != "")
+                                currentThoughtValue = potentialContent;
+                            }
+
+                            if (currentThoughtValue.Length > lastPrintedThought.Length && currentThoughtValue.StartsWith(lastPrintedThought))
+                            {
+                                string newContent = currentThoughtValue.Substring(lastPrintedThought.Length);
+                                if (newContent.Contains("\\"))
                                 {
-                                    Console.Write($"{(newLineBuffer + newContent).Replace("\\n", "")}{Environment.NewLine}");
-                                    newLineBuffer = "";
+                                    newLineBuffer = newContent;
                                 }
                                 else
-                                    Console.Write(newContent);
+                                {
+                                    if (newLineBuffer != "")
+                                    {
+                                        Console.Write($"{(newLineBuffer + newContent).Replace("\\n", "")}{Environment.NewLine}");
+                                        newLineBuffer = "";
+                                    }
+                                    else
+                                        Console.Write(newContent);
+                                }
+                                Console.Out.Flush();
                             }
-                            Console.Out.Flush();
+
+                            lastPrintedThought = currentThoughtValue;
                         }
 
-                        lastPrintedThought = currentThoughtValue;
+                    }
+                    else if ((_streamingStates & (int)ProcessingState.StreamingToolCalls) != 0 && toolcallStarted)
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        if (currentFullResponse.Contains("["))
+                            if (currentFullResponse.Count(x => x == '[') == currentFullResponse.Count(x => x == ']'))
+                                toolcallStarted = false;
+                        Console.Write(chunk);
                     }
                 });
 
-            cts.Cancel();
-
-            if (animationTask != null)
-                await animationTask;
-
+            Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine();
-            //Console.WriteLine(responseBuilder.ToString());
             return responseBuilder.ToString();
-        }
-
-        private static async Task ShowSpinner(CancellationToken token)
-        {
-            var spinnerChars = new[] { '|', '/', '-', '\\' };
-            int spinnerIndex = 0;
-
-            while (!token.IsCancellationRequested)
-            {
-                Console.Write(spinnerChars[spinnerIndex]);
-                spinnerIndex = (spinnerIndex + 1) % spinnerChars.Length;
-
-                try
-                {
-                    await Task.Delay(150, token);
-                }
-                catch (TaskCanceledException)
-                {
-                    break;
-                }
-
-                Console.Write('\b');
-            }
-            Console.Write("\b \b");
         }
 
         private string _systemInstructions =
@@ -141,10 +117,9 @@ You are Slop AI, a grumpy but highly competent general agent. Your goal is to co
 * **Your output MUST be a single JSON object.** 
 * **If you output anything else (explanations, text outside JSON, multiple objects), the system will immediately reject your response.**
 
-* **You must validate your JSON yourself before sending it.** 
 * **The only allowed top-level keys are: ""thought"" and ""tool_calls"". **
 * **JSON must begin with { and end with } — no {{...}} wrapping is allowed.**
-* **JSON has to be formated. Not single line format.**
+* **JSON has to be formated (line breaks, padding). Not single line format.**
 
 Forbidden behaviors:
 * **Do NOT output text outside the JSON.**
@@ -203,13 +178,25 @@ The response MUST exactly match this schema. No extra wrapping braces ({{}}), no
 Example of a valid multi-step action:
 ```json
 {
-    ""thought"": ""The user wants to create a new project. My plan is: 1. Create the 'new-project' directory. 2. Change into that new directory. 3. Create an initial 'example.txt' file inside it. 4. Then go back to the environment folder. I can do all of these in one turn."",
-    ""tool_calls"": [
-        { ""tool"": ""CreateDirectory"", ""args"": { ""dirname"": ""new-project"" } },
-        { ""tool"": ""ChangeDirectory"", ""args"": { ""dirname"": ""new-project"" } },
-        { ""tool"": ""WriteFile"", ""args"": { ""filename"": ""example.txt"", ""content"": ""Example content"" } }
-        { ""tool"": ""ChangeDirectory"", ""args"": { ""dirname"": ""/"" } }
-    ]
+  ""thought"": ""The user wants to create a new project. My plan is: 1. Create the 'new-project' directory. 2. Change into that new directory. 3. Create an initial 'example.txt' file inside it. 4. Then go back to the environment folder. I can do all of these in one turn."",
+  ""tool_calls"": [
+    {
+      ""tool"": ""CreateDirectory"",
+      ""args"": { ""dirname"": ""new-project"" }
+    },
+    {
+      ""tool"": ""ChangeDirectory"",
+      ""args"": { ""dirname"": ""new-project"" }
+    },
+    {
+      ""tool"": ""WriteFile"",
+      ""args"": { ""filename"": ""example.txt"", ""content"": ""Example content"" }
+    },
+    {
+      ""tool"": ""ChangeDirectory"",
+      ""args"": { ""dirname"": ""/"" }
+    }
+  ]
 }
 ```
 

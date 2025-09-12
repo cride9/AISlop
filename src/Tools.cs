@@ -11,172 +11,138 @@ namespace AISlop
 {
     public class Tools
     {
-        string _workspace = "workspace";
-        string _workspaceRoot = "workspace";
-        string _workspacePlan = "workspace";
-
-        public Tools()
+        public Tools(string cwd)
         {
-            if (!Directory.Exists(_workspaceRoot))
-                Directory.CreateDirectory(_workspaceRoot);
+            if (!Directory.Exists(cwd))
+                Directory.CreateDirectory(cwd);
         }
 
-        public string GetCurrentWorkDirectory()
+        /// <summary>
+        /// Creates a file
+        /// </summary>
+        /// <param name="filename">Filapath and name WITH extension</param>
+        /// <param name="content">File content</param>
+        /// <returns>Status</returns>
+        public string CreateFile(string filename, string content, string cwd)
         {
-            return _workspace;
-        }
-
-        /*
-        {
-            "tool": "CreateDirectory",
-            "args": {
-                "name": "directoryName"
-            }
-        }
-        */
-        public string CreateDirectory(string name, bool setAsActive)
-        {
-            string folder = Path.Combine(_workspace, name);
-            if (Directory.Exists(folder))
-                return $"Directory already exists with name: \"{name}\"";
-
-            var output = Directory.CreateDirectory(folder);
-            if (setAsActive)
-                _workspace = folder;
-            return $"Directory created at: \"{folder}\"." + (setAsActive ? $" Current active directory: \"{folder}\"" : "");
-        }
-        /*
-        {
-            "tool": "CreateFile",
-            "args": {
-                "filename": "FilaName.extension",
-                "content": "file content"
-            }
-        }
-        */
-        public string CreateFile(string filename, string content)
-        {
-            string filePath = Path.Combine(_workspace, filename);
+            string filePath = Path.Combine(cwd, filename);
             if (File.Exists(filePath))
                 return $"A file with that name already exists in the workspace: {filename}";
 
-            if (filename.ToLower().Contains("plan"))
-            {
-                if (!_workspacePlan.Contains("plan"))
-                    _workspacePlan = filePath;
-                else
-                    filePath = _workspacePlan;
-            }
-
-                using var file = File.Create(filePath);
+            using var file = File.Create(filePath);
             using StreamWriter sw = new(file, Encoding.UTF8);
 
             content = Regex.Unescape(content);
-
             sw.Write(content);
 
             return $"File has been created: \"{filename}\" and content written into it";
         }
-        /*
-        {
-            "tool": "ReadFile",
-            "args": {
-                "filename": "FilaName.extension",
-            }
-        }
-        */
-        public string ReadFile(string filename)
-        {
-            string filePath = Path.Combine(_workspace, filename);
-            if (filename.ToLower().Contains("plan"))
-                filePath = _workspacePlan;
 
+        /// <summary>
+        /// Creates a directory
+        /// </summary>
+        /// <param name="name">Path to the directory</param>
+        /// <param name="setAsActive">DEPRECATED HAS TO BE REMOVED</param>
+        /// <returns>Status</returns>
+        public string CreateDirectory(string name, string cwd)
+        {
+            string folder = Path.Combine(cwd, name);
+            if (Directory.Exists(folder))
+                return $"Directory already exists with name: \"{name}\"";
+
+            var output = Directory.CreateDirectory(folder);
+            return $"Directory created at: \"{folder}\".";
+        }
+
+        /// <summary>
+        /// Reads a file content
+        /// </summary>
+        /// <param name="filename">File path + file name with extension</param>
+        /// <returns>File content</returns>
+        public string ReadFile(string filename, string cwd)
+        {
+            if (filename.Contains(".pdf"))
+                return ReadTextFromPDF(filename, cwd);
+
+            string filePath = Path.Combine(cwd, filename);
             if (!File.Exists(filePath))
                 return $"The file does not exists: \"{filePath}\"";
 
             var file = File.OpenRead(filePath);
             using StreamReader sr = new(file);
 
-            return "File content:\n```\n" + sr.ReadToEnd().ToString() + "\n```";
+            return $"{filename} content:\n```\n" + sr.ReadToEnd().ToString() + "\n```";
         }
-        /*
+        /// <summary>
+        /// Overrides a file DEPRECATED has to be "WriteFile" for clarity
+        /// </summary>
+        /// <param name="filename">file path + name with extension</param>
+        /// <param name="text">text to be written into the file</param>
+        /// <returns>Status</returns>
+        public string OverwriteFile(string filename, string text, string cwd)
         {
-            "tool": "ModifyFile",
-            "args": {
-                "filename": "FilaName.extension",
-                "insertText": "text"
-            }
-        }
-        */
-        public string ModifyFile(string filename, string text)
-        {
-            string filePath = Path.Combine(_workspace, filename);
-            if (filename.ToLower().Contains("plan"))
-                filePath = _workspacePlan;
+            string filePath = Path.Combine(cwd, filename);
 
-            if (!File.Exists(filePath))
-                return $"The file does not exists: \"{filePath}\"";
+            if (File.Exists(filePath))
+                File.Delete(filePath);
 
-            File.Delete(filePath);
-            return CreateFile(filename, text);
+            return CreateFile(filename, text, cwd);
         }
-        /*
+        /// <summary>
+        /// Lists out files
+        /// </summary>
+        /// <returns>CWD folder + file structure</returns>
+        public string ListDirectory(string cwd)
         {
-            "tool": "GetWorkspaceEntries",
-            "args": {
-            }
-        }
-        */
-        public string GetWorkspaceEntries()
-        {
-            var terminalOutput = ExecuteTerminal("tree /f | more +3");
-            return $"Entries in folder \"{_workspace}\":\n{terminalOutput}";
-        }
-        /*
-        {
-            "tool": "OpenFolder",
-            "args": {
-                "folderName": "foldername"
-            }
-        }
-        */
-        public string OpenFolder(string folderName)
-        {
-            if (folderName == "workspace")
+            if (!Directory.Exists(cwd))
+                return "Current CWD is empty";
+
+            var sb = new StringBuilder();
+            var option = SearchOption.TopDirectoryOnly;
+
+            foreach (var dir in Directory.GetDirectories(cwd, "*", option))
             {
-                _workspace = _workspaceRoot;
-                return $"Successfully changed to folder \"{_workspace}\"";
+                sb.AppendLine("[DIR] " + dir.Replace($"{cwd}\\", ""));
             }
 
-            if (_workspace.Contains(folderName))
+            foreach (var file in Directory.GetFiles(cwd, "*", option))
+            {
+                sb.AppendLine("[FILE] " + file.Replace($"{cwd}\\", ""));
+            }
+
+            return $"Current directory: {cwd}\n" + sb.ToString();
+        }
+        /// <summary>
+        /// Changes CWD
+        /// </summary>
+        /// <param name="folderName">path to the folder</param>
+        /// <returns>Status</returns>
+        public string OpenFolder(string folderName, ref string cwd)
+        {
+            if (folderName == "/")
+            {
+                cwd = "environment";
+                return $"Successfully changed to folder \"{cwd}\"";
+            }
+
+            if (cwd.Contains(folderName))
                 return $"Already in a folder named \"{folderName}\"";
 
-            string path = Path.Combine(_workspace, folderName);
-            string rootPath = Path.Combine(_workspaceRoot, folderName);
-            if (!Directory.Exists(path) && !Directory.Exists(rootPath))
+            string path = Path.Combine(cwd, folderName);
+            if (!Directory.Exists(path))
                 return $"Directory \"{folderName}\" does not exist";
 
-            // safe handle, if AI fails to navigate back
-            if (Directory.Exists(rootPath))
-            {
-                _workspace = rootPath;
-                return $"Successfully changed to folder \"{folderName}\"";
-            }
-
-            _workspace = path;
+            cwd = path;
             return $"Successfully changed to folder \"{folderName}\"";
         }
-        /*
+        /// <summary>
+        /// Reads text from pdf
+        /// </summary>
+        /// <param name="filename">path + filename with extension</param>
+        /// <returns></returns>
+        public string ReadTextFromPDF(string filename, string cwd)
         {
-            "tool": "ReadTextFromPDF",
-            "args": {
-                "filename": "filename"
-            }
-        }
-        */
-        public string ReadTextFromPDF(string filename)
-        {
-            var filePath = Path.Combine(_workspace, filename);
+            var filePath = filename;
             if (!File.Exists(filePath))
                 return $"File \"{filename}\" does not exist.";
 
@@ -190,7 +156,7 @@ namespace AISlop
                     var y = word.BoundingBox.Top;
                     if (lastY != null && Math.Abs(lastY.Value - y) > 5)
                         sb.AppendLine();
-                    
+
                     sb.Append($"{word.Text} ");
                     lastY = y;
                 }
@@ -198,19 +164,16 @@ namespace AISlop
 
             return $"PDF file content:\n{sb.ToString()}";
         }
-        /*
-        {
-            "tool": "ExecuteTerminal",
-            "args": {
-                "command": "command"
-            }
-        }
-        */
-        public string ExecuteTerminal(string command)
+        /// <summary>
+        /// Executes WINDOWS terminal functions
+        /// </summary>
+        /// <param name="command">Command to run eg.: npm init -y</param>
+        /// <returns>CMD output</returns>
+        public string ExecuteTerminal(string command, string cwd)
         {
             var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
             {
-                WorkingDirectory = Path.GetFullPath(_workspace),
+                WorkingDirectory = Path.Combine("./", cwd),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -218,7 +181,7 @@ namespace AISlop
             };
 
             using var process = Process.Start(processInfo);
-            
+
             string output = process!.StandardOutput.ReadToEnd();
             string error = process.StandardError.ReadToEnd();
 
@@ -230,22 +193,18 @@ namespace AISlop
             return output + error;
         }
 
-        /*
+        /// <summary>
+        /// Creates a PDF file from markdown input
+        /// </summary>
+        /// <param name="filename">path + filename with extension</param>
+        /// <param name="markdowntext">markdown input</param>
+        /// <returns>Status</returns>
+        public string CreatePdfFile(string filename, string markdowntext, string cwd)
         {
-            "tool": "CreatePdfFile",
-            "args": {
-                "fileName": "fileName",
-                "markdownText": "markdownText"
-            }
-        }
-        */
-        public string CreatePdfFile(string filename, string markdowntext)
-        {
-            var path = Path.Combine(_workspace, filename);
+            var path = Path.Combine(cwd, filename);
             if (File.Exists(path))
                 return $"File already exists with name {filename} in CWD";
 
-            //markdowntext = Regex.Unescape(markdowntext);
             markdowntext = markdowntext.Replace("\\n", "\n").Replace("\\t", "\t");
             var document = Document.Create(container =>
             {
@@ -259,6 +218,29 @@ namespace AISlop
 
             document.GeneratePdf(path);
             return $"File has been created: \"{path}\" and content written into it";
+        }
+        /// <summary>
+        /// Displays the task has been completed
+        /// </summary>
+        /// <param name="message">task ending message</param>
+        /// <returns></returns>
+        public string TaskDone(string message)
+        {
+            Logging.DisplayAgentThought(message, ConsoleColor.Yellow);
+            return "";
+        }
+        /// <summary>
+        /// Asks the user a question if the task is not clear
+        /// </summary>
+        /// <param name="message">Question</param>
+        /// <returns>User response</returns>
+        public string AskUser(string message)
+        {
+            Logging.DisplayAgentThought(message, ConsoleColor.Cyan);
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.Write("Response: ");
+            Console.ForegroundColor = ConsoleColor.Gray;
+            return Console.ReadLine()!;
         }
     }
 }

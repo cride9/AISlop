@@ -1,4 +1,5 @@
-﻿using QuestPDF.Fluent;
+﻿using Markdig.Helpers;
+using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Markdown;
 using System.Diagnostics;
@@ -241,6 +242,16 @@ namespace AISlop
             Console.Write("Response: ");
             Console.ForegroundColor = ConsoleColor.Gray;
             return Console.ReadLine()!;
+        }
+
+        public async Task<string> WebSearch(string query)
+        {
+            return await WebScraper.Search(query);
+        }
+
+        public async Task<string> GetTextFromWebPage(string url)
+        {
+            return await WebScraper.ScrapeTextFromUrlAsync(url);
         }
     }
 }

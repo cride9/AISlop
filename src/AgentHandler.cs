@@ -12,7 +12,7 @@ namespace AISlop
         private readonly AIWrapper _agent;
         private string _cwd = "environment";
         private bool _agentRunning = true;
-        private Dictionary<string, Func<Dictionary<string, string>, string>> _toolHandler = null!;
+        private readonly Dictionary<string, Func<Dictionary<string, string>, Task<string>>> _toolHandler;
 
         /// <summary>
         /// Initializes the Tools, Agent, and a ToolHandler for this instance
@@ -23,19 +23,29 @@ namespace AISlop
             _tools = new(_cwd);
             _agent = new(modelName, streamingState);
             _toolHandler = new()
-            {
-                { "createdirectory", args => _tools.CreateDirectory(args.GetValueOrDefault("dirname"), _cwd) },
-                { "createfile", args => _tools.CreateFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("content"), _cwd) },
-                { "readfile", args => _tools.ReadFile(args.GetValueOrDefault("filename"), _cwd) },
-                { "writefile", args => _tools.OverwriteFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("content"), _cwd) },
-                { "listdirectory", args => _tools.ListDirectory(_cwd)},
-                { "changedirectory", args => _tools.OpenFolder(args.GetValueOrDefault("dirname"), ref _cwd) },
-                { "taskdone", args => { _agentRunning = false; return _tools.TaskDone(args.GetValueOrDefault("message")); } },
-                { "askuser", args => _tools.AskUser(args.GetValueOrDefault("question")) },
-                { "readtextfrompdf", args => _tools.ReadTextFromPDF(args.GetValueOrDefault("filename"), _cwd) },
-                { "executeterminal", args => $"Command used: {args.GetValueOrDefault("command")}. Output: {_tools.ExecuteTerminal(args.GetValueOrDefault("command"), _cwd)}" },
-                { "createpdffile", args => _tools.CreatePdfFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("markdown_content"), _cwd) }
-            };
+        {
+            // --- SYNCHRONOUS TOOLS (Wrapped in Task.FromResult) ---
+            { "createdirectory", args => Task.FromResult(_tools.CreateDirectory(args.GetValueOrDefault("dirname"), _cwd)) },
+            { "createfile", args => Task.FromResult(_tools.CreateFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("content"), _cwd)) },
+            { "readfile", args => Task.FromResult(_tools.ReadFile(args.GetValueOrDefault("filename"), _cwd)) },
+            { "writefile", args => Task.FromResult(_tools.OverwriteFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("content"), _cwd)) },
+            { "listdirectory", args => Task.FromResult(_tools.ListDirectory(_cwd))},
+            { "changedirectory", args => Task.FromResult(_tools.OpenFolder(args.GetValueOrDefault("dirname"), ref _cwd)) },
+            { "taskdone", args =>
+                {
+                    _agentRunning = false;
+                    return Task.FromResult(_tools.TaskDone(args.GetValueOrDefault("message")));
+                }
+            },
+            { "askuser", args => Task.FromResult(_tools.AskUser(args.GetValueOrDefault("question"))) },
+            { "readtextfrompdf", args => Task.FromResult(_tools.ReadTextFromPDF(args.GetValueOrDefault("filename"), _cwd)) },
+            { "executeterminal", args => Task.FromResult($"Command used: {args.GetValueOrDefault("command")}. Output: {_tools.ExecuteTerminal(args.GetValueOrDefault("command"), _cwd)}") },
+            { "createpdffile", args => Task.FromResult(_tools.CreatePdfFile(args.GetValueOrDefault("filename"), args.GetValueOrDefault("markdown_content"), _cwd)) },
+
+            // --- ASYNCHRONOUS TOOLS (Return the Task directly) ---
+            { "websearch", args => _tools.WebSearch(args.GetValueOrDefault("query")) },
+            { "gettextfromwebpage", args => _tools.GetTextFromWebPage(args.GetValueOrDefault("url")) }
+        };
         }
         /// <summary>
         /// Main function of the agent. Handles the recursion
@@ -64,7 +74,7 @@ namespace AISlop
             if (parsedToolCalls.Count() == 1 && !string.IsNullOrWhiteSpace(parsedToolCalls.First().Error))
                 return await HandleInvalidToolcall(parsedToolCalls.First().Error);
 
-            string toolCallOutputs = ExecuteTool(parsedToolCalls);
+            string toolCallOutputs = await ExecuteTool(parsedToolCalls);
 
             if (!string.IsNullOrEmpty(toolCallOutputs))
                 Logging.DisplayToolCallUsage(toolCallOutputs);
@@ -90,7 +100,7 @@ namespace AISlop
         /// </summary>
         /// <param name="toolcalls">Tools to execute</param>
         /// <returns>Tool outputs</returns>
-        private string ExecuteTool(IEnumerable<Parser.Command> toolcalls)
+        private async Task<string> ExecuteTool(IEnumerable<Parser.Command> toolcalls)
         {
             StringBuilder sb = new();
             try
@@ -98,12 +108,19 @@ namespace AISlop
                 foreach (var singleCall in toolcalls)
                 {
                     if (_toolHandler.TryGetValue(singleCall.Tool.ToLower(), out var func))
-                        sb.AppendLine($"{singleCall.Tool} output: {func(singleCall.Args)}");
+                    {
+                        string result = await func(singleCall.Args);
+                        sb.AppendLine($"{singleCall.Tool} output: {result}");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"{singleCall.Tool} error: Tool not found.");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                sb.AppendLine(ex.Message);
+                sb.AppendLine($"An error occurred during tool execution: {ex.Message}");
             }
 
             return sb.ToString();

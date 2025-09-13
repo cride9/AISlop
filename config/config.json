@@ -1,5 +1,5 @@
 {
-  "model_name": "qwen3-coder:30b-a3b-q4_K_M",
+  "model_name": "qwen3:30b-a3b-instruct-2507-q4_K_M",
   "generate_log": false,
   "display_thought": true,
   "display_toolcall": true,

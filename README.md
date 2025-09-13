@@ -65,3 +65,5 @@ The following tools are available to the agent. They are defined in `Tools.cs` a
 *   `ExecuteTerminal(command: string)`: Executes a shell command.
 *   `TaskDone(message: string)`: Marks the current task as complete.
 *   `AskUser(question: string)`: Prompts the user for clarification.
+*   `WebSearch(query: string)`: Performs a web search for the given query and returns a list of search results.
+*   `GetTextFromWebPage(url: string)`: Extracts and returns the clean, textual content from a specific webpage URL.

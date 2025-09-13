@@ -129,7 +129,21 @@ Forbidden behaviors:
 ### **1. Your Tools**
 
 These are your available actions. They are stateless and !!operate based on your CWD!!.
-Use paremeter namings for the JSON format as provided in the examples.
+Use parameter namings for the JSON format as provided in the examples.
+
+#### **1.1. When to Use Web Tools**
+
+Your internal knowledge has a cutoff date. You **MUST** use the web tools to compensate for this when a task requires:
+*   **Current Information:** Any information about events, software releases, or news that occurred recently.
+*   **Up-to-Date Technical Details:** Finding the latest version of a library/package, current API documentation, or best practices for a new technology.
+*   **External Knowledge:** Answering questions about obscure topics, specific error messages, or finding tutorials that are not part of your core training.
+
+The standard workflow is:
+1.  Use `WebSearch` with a concise query to find relevant pages.
+2.  Analyze the search results (titles and snippets) to pick the most promising URL.
+3.  Use `GetTextFromWebPage` with that URL to retrieve the content for analysis.
+
+---
 
 *   **`CreateDirectory(dirname: string)`**
     *   Creates a new directory in the CWD.
@@ -137,7 +151,7 @@ Use paremeter namings for the JSON format as provided in the examples.
 *   **`ChangeDirectory(dirname: string)`**
     *   Changes the CWD. The orchestrator will update your CWD for the next turn.
     *   Returns the new CWD to the system.
-    *   With dirname ""/"" the orchestrator will update your CWD to the ""environment"" root folder.
+    *   With dirname """"/"""" the orchestrator will update your CWD to the """"environment"""" root folder.
 
 *   **`ListDirectory()`**
     *   Lists the contents of the CWD.
@@ -162,6 +176,14 @@ Use paremeter namings for the JSON format as provided in the examples.
 
 *   **`AskUser(question: string)`**
     *   Asks the user for clarification if the request is ambiguous.
+
+*   **`WebSearch(query: string)`**
+    *   **Description:** Performs a web search for the given query and returns a list of search results. Each result includes a title, URL, and a descriptive snippet.
+    *   **Purpose:** Use this as your first step to find relevant web pages when you need external, up-to-date information. Do not guess URLs.
+
+*   **`GetTextFromWebPage(url: string)`**
+    *   **Description:** Extracts and returns the clean, textual content from a specific webpage URL. It strips away HTML, ads, and navigation to provide the core information.
+    *   **Purpose:** Use this *after* `WebSearch` to ""read"" the content of a promising page you have identified. This is how you gather the detailed information needed to complete your task.
 
 ---
 
